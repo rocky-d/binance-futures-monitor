@@ -1,0 +1,669 @@
+import asyncio
+import collections
+import copy
+import inspect
+import json
+import math
+import pathlib
+from types import TracebackType
+from typing import Any, Self, Type
+from binance.um_futures import UMFutures
+from binance.websocket.um_futures.websocket_client import UMFuturesWebsocketClient
+from binance.websocket.binance_socket_manager import BinanceSocketManager
+from loguru import logger
+
+from .utils import *
+from .feishu import Bot
+from .timewindow import SparseTimewindow
+from .cards import ERROR_CARD, POSITION_CARD, MARKET_CARD, ORDER_CARD, EXCHANGE_CARD
+
+__all__ = [
+    "BaseMonitor",
+    "PositionMonitor",
+    "MarketMonitor",
+    "OrderMonitor",
+    "ExchangeMonitor",
+]
+
+
+class BaseMonitor:
+
+    def __init__(
+        self,
+    ) -> None:
+        self._tasks: list[asyncio.Task[None]] = []
+
+    async def __aenter__(
+        self,
+    ) -> Self:
+        await self.start()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None,
+    ) -> None:
+        await self.stop()
+
+    async def start(
+        self,
+    ) -> None:
+        logger.info(f"{self} starting")
+        if self.running:
+            logger.warning(f"{self} have started")
+            return
+        coroutines = []
+        for name in dir(self):
+            if not name.startswith("monitor"):
+                continue
+            attr = getattr(self, name)
+            if not inspect.iscoroutinefunction(attr):
+                continue
+            coroutines.append(attr())
+        self._tasks.extend(map(asyncio.create_task, coroutines))
+        logger.info(f"{self} started")
+
+    async def stop(
+        self,
+    ) -> None:
+        logger.info(f"{self} stopping")
+        if not self.running:
+            logger.warning(f"{self} have stopped")
+            return
+        for task in self._tasks:
+            task.cancel()
+        self._tasks.clear()
+        logger.info(f"{self} stopped")
+
+    @property
+    def running(
+        self,
+    ) -> bool:
+        return not all(task.cancelled() or task.done() for task in self._tasks)
+
+
+class PositionMonitor(BaseMonitor):
+
+    def __init__(
+        self,
+        bot: Bot,
+        *,
+        key: str | None = None,
+        secret: str | None = None,
+        **kwargs,
+    ) -> None:
+        super().__init__()
+        self.bot = bot
+        self.client = UMFutures(
+            key=key,
+            secret=secret,
+            **kwargs,
+        )
+
+    async def monitor_position(
+        self,
+    ) -> None:
+        error_card = copy.deepcopy(ERROR_CARD)
+        position_card = copy.deepcopy(POSITION_CARD)
+
+        var_path = pathlib.Path(r"./var.json")
+
+        async def load_var() -> Any:
+            def _load_var() -> Any:
+                if not var_path.is_file():
+                    return {}
+                with open(var_path, mode="r") as f:
+                    var = json.load(f)
+                return var
+
+            return await asyncio.to_thread(_load_var)
+
+        async def dump_var(
+            var: Any,
+        ) -> None:
+            def _dump_var() -> None:
+                var_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(var_path, mode="w") as f:
+                    json.dump(var, f)
+
+            await asyncio.to_thread(_dump_var)
+
+        var = await load_var()
+        totl_max = float(var.setdefault("totl_max", "0.0"))
+        account_dq = collections.deque(maxlen=1)
+        positions_dq = collections.deque(maxlen=12)
+        delay = until_next_hour(minute=5)
+        sleep_task = asyncio.create_task(asyncio.sleep(delay))
+        while True:
+            await sleep_task
+            delay = until_next_hour(minute=5)
+            sleep_task = asyncio.create_task(asyncio.sleep(delay))
+            position_card["body"]["elements"][1]["rows"] = rows1 = []
+            position_card["body"]["elements"][2]["rows"] = rows2 = []
+            try:
+                data = await restapi_wrapper(self.client.account)
+            except Exception as e:
+                logger.error(repr(e))
+                error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+                await self.bot.send_interactive(error_card)
+                continue
+            account = data
+            try:
+                data = await restapi_wrapper(self.client.get_position_risk)
+            except Exception as e:
+                logger.error(repr(e))
+                error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+                await self.bot.send_interactive(error_card)
+                continue
+            positions = {x["symbol"]: x for x in data}
+            rows1.append({"indicator": "多仓"})
+            rows1.append({"indicator": "空仓"})
+            rows1.append({"indicator": "总仓"})
+            rows1.append({"indicator": "总资产"})
+            long = shrt = 0.0
+            for position in positions.values():
+                if "-" == position["notional"][0]:
+                    shrt += -float(position["notional"])
+                else:
+                    long += float(position["notional"])
+            lort = long + shrt
+            totl = float(account["totalMarginBalance"])
+            rows1[0]["notional"] = long
+            rows1[1]["notional"] = shrt
+            rows1[2]["notional"] = lort
+            rows1[3]["notional"] = totl
+            if 1 <= len(positions_dq):
+                oth_positions = positions_dq[-1]
+                oth_long = oth_shrt = 0.0
+                for position in oth_positions.values():
+                    if "-" == position["notional"][0]:
+                        oth_shrt += -float(position["notional"])
+                    else:
+                        oth_long += float(position["notional"])
+                long_pnl1h = long - oth_long
+                shrt_pnl1h = oth_shrt - shrt
+                lort_pnl1h = long_pnl1h + shrt_pnl1h
+                rows1[0]["pnl1h"] = long_pnl1h
+                rows1[1]["pnl1h"] = shrt_pnl1h
+                rows1[2]["pnl1h"] = lort_pnl1h
+            if 1 <= len(account_dq):
+                oth_account = account_dq[-1]
+                oth_totl = float(oth_account["totalMarginBalance"])
+                totl_pnl1h = totl - oth_totl
+                rows1[3]["pnl1h"] = totl_pnl1h
+            totl_max = max(totl_max, totl)
+            if 0 < totl_max:
+                totl_drawdown_percent = 100 * (totl_max - totl) / totl_max
+                rows1[3]["drawdown_percent"] = totl_drawdown_percent
+            for position in sorted(
+                positions.values(),
+                key=lambda x: ("-" == x["notional"][0], -float(x["unRealizedProfit"])),
+            ):
+                ps = "-" == position["notional"][0]
+                ps_str = "<font color='red'>空</font>" if ps else "<font color='green'>多</font>"
+                symbol = position["symbol"]
+                fsymbol = format_symbol(symbol)
+                notional = abs(float(position["notional"]))
+                notional_percent = 100 * notional / lort if 0 < lort else 0.0
+                unrealized_profit = float(position["unRealizedProfit"])
+                position_amt = abs(float(position["positionAmt"]))
+                entry_price = float(position["entryPrice"])
+                mark_price = float(position["markPrice"])
+                entry_notional = entry_price * position_amt
+                unrealized_profit_percent = 100 * unrealized_profit / entry_notional if 0 < entry_notional else 0.0
+                row = {"position": f"{ps_str} {fsymbol}"}
+                row["notional"] = notional
+                row["notional_percent"] = notional_percent
+                row["unrealized_profit"] = unrealized_profit
+                row["unrealized_profit_percent"] = unrealized_profit_percent
+                row["position_amt"] = position_amt
+                row["entry_price"] = entry_price
+                row["mark_price"] = mark_price
+                if 1 <= len(positions_dq) and symbol in positions_dq[-1]:
+                    oth_positions = positions_dq[-1]
+                    oth_mark_price = float(oth_positions[symbol]["markPrice"])
+                    change1h_percent = 100 * (mark_price - oth_mark_price) / oth_mark_price
+                    row["change1h_percent"] = change1h_percent
+                if 12 <= len(positions_dq) and symbol in positions_dq[-12]:
+                    oth_positions = positions_dq[-12]
+                    oth_mark_price = float(oth_positions[symbol]["markPrice"])
+                    change12h_percent = 100 * (mark_price - oth_mark_price) / oth_mark_price
+                    row["change12h_percent"] = change12h_percent
+                rows2.append(row)
+            account_dq.append(account)
+            positions_dq.append(positions)
+            await self.bot.send_interactive(position_card)
+            var["totl_max"] = str(totl_max)
+            await dump_var(var)
+
+
+class MarketMonitor(BaseMonitor):
+
+    def __init__(
+        self,
+        bot: Bot,
+        *,
+        key: str | None = None,
+        secret: str | None = None,
+        params: dict[str, float] = {},
+        speed: int = 1,
+        maxm: int = 256,
+        **kwargs,
+    ) -> None:
+        super().__init__()
+        self.bot = bot
+        self.client = UMFutures(
+            key=key,
+            secret=secret,
+            **kwargs,
+        )
+        self.wsclient = UMFuturesWebsocketClient(
+            on_message=self.on_message,
+            on_open=self.on_open,
+            on_close=self.on_close,
+            on_error=self.on_error,
+            on_ping=self.on_ping,
+            on_pong=self.on_pong,
+        )
+        self.positions = {}
+        self.speed = speed
+        self.tws = tws = []
+        for interval, change_percent in sorted(
+            (parse_interval(interval), change_percent) for interval, change_percent in params.items()
+        ):
+            unit = interval // maxm
+            tw = SparseTimewindow(interval, unit=unit)
+            tw.change_percent = change_percent
+            tws.append(tw)
+
+    async def stop(
+        self,
+    ) -> None:
+        if not self.running:
+            return
+        self.wsclient.stop()
+        await super().stop()
+
+    def on_message(
+        self,
+        socket_manager: BinanceSocketManager,
+        data: bytes | str,
+    ) -> None:
+        logger.debug(f"on_message\n{data}")
+        try:
+            data = json.loads(data)
+        except json.JSONDecodeError as e:
+            logger.warning(f"{repr(e)}\n{data}")
+            return
+        if isinstance(data, list):
+            mps = {x["s"]: x for x in data}
+            for tw in self.tws:
+                tw.push(mps, time_ms())
+
+    def on_open(
+        self,
+        socket_manager: BinanceSocketManager,
+    ) -> None:
+        logger.info(f"on_open")
+
+    def on_close(
+        self,
+        socket_manager: BinanceSocketManager,
+    ) -> None:
+        logger.info(f"on_close")
+
+    def on_error(
+        self,
+        socket_manager: BinanceSocketManager,
+        e: Exception,
+    ) -> None:
+        logger.warning(f"on_error\n{repr(e)}")
+        socket_manager.create_ws_connection()
+
+    def on_ping(
+        self,
+        socket_manager: BinanceSocketManager,
+        data: bytes | str,
+    ) -> None:
+        logger.debug(f"on_ping\n{data}")
+
+    def on_pong(
+        self,
+        socket_manager: BinanceSocketManager,
+    ) -> None:
+        logger.debug(f"on_pong")
+
+    async def monitor_positions(
+        self,
+    ) -> None:
+        error_card = copy.deepcopy(ERROR_CARD)
+
+        delay = 10 * 60 * 1.0
+        sleep_task = asyncio.create_task(asyncio.sleep(0.0))
+        while True:
+            await sleep_task
+            sleep_task = asyncio.create_task(asyncio.sleep(delay))
+            try:
+                data = await restapi_wrapper(self.client.get_position_risk)
+            except Exception as e:
+                logger.error(repr(e))
+                error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+                await self.bot.send_interactive(error_card)
+                continue
+            self.positions.clear()
+            self.positions.update((x["symbol"], x) for x in data)
+
+    async def monitor_market(
+        self,
+    ) -> None:
+        market_card = copy.deepcopy(MARKET_CARD)
+
+        self.wsclient.mark_price_all_market(speed=self.speed)
+        memories = {}
+        delay = 10 * 1.0
+        sleep_task = asyncio.create_task(asyncio.sleep(delay))
+        while True:
+            await sleep_task
+            sleep_task = asyncio.create_task(asyncio.sleep(delay))
+            market_card["body"]["elements"][1]["rows"] = rows = []
+            sorting_map = {}
+            for tw in self.tws:
+                if tw.empty():
+                    break
+                mps0, t0 = tw.head()
+                mps1, t1 = tw.tail()
+                if t1 - t0 + 2 * tw.unit + 8_000 < tw.interval:
+                    break
+                for symbol in mps0.keys() & mps1.keys():
+                    mp0 = float(mps0[symbol]["p"])
+                    mp1 = float(mps1[symbol]["p"])
+                    change_percent = 100 * (mp1 - mp0) / mp0
+                    if abs(change_percent) < tw.change_percent:
+                        continue
+                    t = time_ms()
+                    if t - memories.get((symbol, tw.interval), -math.inf) < tw.interval:
+                        continue
+                    memories[symbol, tw.interval] = t
+                    row = {}
+                    fsymbol = format_symbol(symbol)
+                    if symbol in self.positions:
+                        ps = "-" == self.positions[symbol]["notional"][0]
+                        ps_str = "<font color='red'>空</font>" if ps else "<font color='green'>多</font>"
+                        row["symbol"] = f"{ps_str} {fsymbol}"
+                    else:
+                        row["symbol"] = fsymbol
+                    row["timedelta"] = format_milliseconds(tw.interval)
+                    row["change_percent"] = change_percent
+                    rows.append(row)
+                    sorting_map[row["symbol"]] = (
+                        0 if symbol in self.positions else 1,
+                        tw.interval,
+                        -abs(change_percent),
+                    )
+            if 0 < len(rows):
+                rows.sort(key=lambda x: sorting_map[x["symbol"]])
+                await self.bot.send_interactive(market_card)
+
+
+class OrderMonitor(BaseMonitor):
+
+    def __init__(
+        self,
+        bot: Bot,
+        *,
+        key: str | None = None,
+        secret: str | None = None,
+        **kwargs,
+    ) -> None:
+        super().__init__()
+        self.bot = bot
+        self.client = UMFutures(
+            key=key,
+            secret=secret,
+            **kwargs,
+        )
+        self.wsclient = UMFuturesWebsocketClient(
+            on_message=self.on_message,
+            on_open=self.on_open,
+            on_close=self.on_close,
+            on_error=self.on_error,
+            on_ping=self.on_ping,
+            on_pong=self.on_pong,
+        )
+        self.lk = "xxx"
+        self.orders = collections.deque()
+
+    async def stop(
+        self,
+    ) -> None:
+        if not self.running:
+            return
+        try:
+            data = await restapi_wrapper(self.client.close_listen_key, self.lk)
+        except Exception as e:
+            logger.error(repr(e))
+            error_card = copy.deepcopy(ERROR_CARD)
+            error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+            await self.bot.send_interactive(error_card)
+        self.wsclient.stop()
+        await super().stop()
+
+    def on_message(
+        self,
+        socket_manager: BinanceSocketManager,
+        data: bytes | str,
+    ) -> None:
+        logger.info(f"on_message\n{data}")
+        try:
+            data = json.loads(data)
+        except json.JSONDecodeError as e:
+            logger.warning(f"{repr(e)}\n{data}")
+            return
+        if isinstance(data, dict) and "ORDER_TRADE_UPDATE" == data.get("e"):
+            if "NEW" == data["o"]["x"]:
+                return
+            self.orders.append(data)
+
+    def on_open(
+        self,
+        socket_manager: BinanceSocketManager,
+    ) -> None:
+        logger.info(f"on_open")
+
+    def on_close(
+        self,
+        socket_manager: BinanceSocketManager,
+    ) -> None:
+        logger.info(f"on_close")
+
+    def on_error(
+        self,
+        socket_manager: BinanceSocketManager,
+        e: Exception,
+    ) -> None:
+        logger.warning(f"on_error\n{repr(e)}")
+        socket_manager.create_ws_connection()
+
+    def on_ping(
+        self,
+        socket_manager: BinanceSocketManager,
+        data: bytes | str,
+    ) -> None:
+        logger.debug(f"on_ping\n{data}")
+
+    def on_pong(
+        self,
+        socket_manager: BinanceSocketManager,
+    ) -> None:
+        logger.debug(f"on_pong")
+
+    async def monitor_lk(
+        self,
+    ) -> None:
+        error_card = copy.deepcopy(ERROR_CARD)
+
+        try:
+            data = await restapi_wrapper(self.client.new_listen_key)
+        except Exception as e:
+            logger.error(repr(e))
+            error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+            await self.bot.send_interactive(error_card)
+        lk_new = data["listenKey"]
+        if self.lk != lk_new:
+            self.lk = lk_new
+            self.wsclient.user_data(self.lk)
+        delay = 10 * 60 * 1.0
+        sleep_task = asyncio.create_task(asyncio.sleep(delay))
+        while True:
+            await sleep_task
+            sleep_task = asyncio.create_task(asyncio.sleep(delay))
+            try:
+                data = await restapi_wrapper(self.client.new_listen_key)
+            except Exception as e:
+                logger.error(repr(e))
+                error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+                await self.bot.send_interactive(error_card)
+                continue
+            lk_new = data["listenKey"]
+            if self.lk != lk_new:
+                self.lk = lk_new
+                self.wsclient.user_data(self.lk)
+
+    async def monitor_order(
+        self,
+    ) -> None:
+        order_card = copy.deepcopy(ORDER_CARD)
+
+        delay = until_next_minute()
+        sleep_task = asyncio.create_task(asyncio.sleep(delay))
+        while True:
+            await sleep_task
+            delay = until_next_minute()
+            sleep_task = asyncio.create_task(asyncio.sleep(delay))
+            order_card["body"]["elements"][1]["rows"] = rows = []
+            orders = sorted(self.orders, key=lambda x: x["o"]["T"])
+            self.orders.clear()
+            for order in orders:
+                timestamp = order["o"]["T"]
+                side = order["o"]["S"]
+                fside = "<font color='green'>买</font>" if "BUY" == side else "<font color='red'>卖</font>"
+                symbol = order["o"]["s"]
+                fsymbol = format_symbol(symbol)
+                last_quantity = float(order["o"]["l"])
+                last_price = float(order["o"]["L"])
+                last_notional = last_quantity * last_price
+                realized_profit = float(order["o"]["rp"])
+                task = order["o"]["x"]
+                status = order["o"]["X"]
+                order_type = order["o"]["o"]
+                valid_type = order["o"]["f"]
+                row = {}
+                row["timestamp"] = timestamp
+                row["side"] = fside
+                row["symbol"] = fsymbol
+                row["last_quantity"] = last_quantity
+                row["last_notional"] = last_notional
+                row["realized_profit"] = realized_profit
+                row["task"] = task
+                row["status"] = status
+                row["order_type"] = order_type
+                row["valid_type"] = valid_type
+                rows.append(row)
+            if 0 < len(rows):
+                await self.bot.send_interactive(order_card)
+
+
+class ExchangeMonitor(BaseMonitor):
+
+    def __init__(
+        self,
+        bot: Bot,
+        *,
+        key: str | None = None,
+        secret: str | None = None,
+        **kwargs,
+    ) -> None:
+        super().__init__()
+        self.bot = bot
+        self.client = UMFutures(
+            key=key,
+            secret=secret,
+            **kwargs,
+        )
+        self.positions = {}
+
+    async def monitor_positions(
+        self,
+    ) -> None:
+        error_card = copy.deepcopy(ERROR_CARD)
+
+        delay = 50 * 60 * 1.0
+        sleep_task = asyncio.create_task(asyncio.sleep(0.0))
+        while True:
+            await sleep_task
+            sleep_task = asyncio.create_task(asyncio.sleep(delay))
+            try:
+                data = await restapi_wrapper(self.client.get_position_risk)
+            except Exception as e:
+                logger.error(repr(e))
+                error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+                await self.bot.send_interactive(error_card)
+                continue
+            self.positions.clear()
+            self.positions.update((x["symbol"], x) for x in data)
+
+    async def monitor_exchange(
+        self,
+    ) -> None:
+        error_card = copy.deepcopy(ERROR_CARD)
+        exchange_card = copy.deepcopy(EXCHANGE_CARD)
+
+        perpetual_time = 4133404800000
+        delay = until_next_hour(minute=5)
+        sleep_task = asyncio.create_task(asyncio.sleep(delay))
+        while True:
+            await sleep_task
+            delay = until_next_hour(minute=5)
+            sleep_task = asyncio.create_task(asyncio.sleep(delay))
+            try:
+                data = await restapi_wrapper(self.client.exchange_info)
+            except Exception as e:
+                logger.error(repr(e))
+                error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+                await self.bot.send_interactive(error_card)
+                continue
+            exchange_card["body"]["elements"][1]["rows"] = rows = []
+            symbols = data["symbols"]
+            try:
+                data = await restapi_wrapper(self.client.time)
+            except Exception as e:
+                logger.error(repr(e))
+                error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+                await self.bot.send_interactive(error_card)
+                continue
+            server_time = data["serverTime"]
+            for data in symbols:
+                if "PERPETUAL" != data["contractType"]:
+                    continue
+                symbol = data["symbol"]
+                status = data["status"]
+                onboard_date = data["onboardDate"]
+                delivery_date = data["deliveryDate"]
+                if not (server_time < delivery_date < perpetual_time or server_time < onboard_date < perpetual_time):
+                    continue
+                row = {}
+                fsymbol = format_symbol(symbol)
+                if symbol in self.positions:
+                    ps = "-" == self.positions[symbol]["notional"][0]
+                    ps_str = "<font color='red'>空</font>" if ps else "<font color='green'>多</font>"
+                    row["symbol"] = f"{ps_str} {fsymbol}"
+                else:
+                    row["symbol"] = fsymbol
+                row["status"] = status
+                row["onboard_date"] = onboard_date
+                row["delivery_date"] = delivery_date
+                rows.append(row)
+            if 0 < len(rows):
+                await self.bot.send_interactive(exchange_card)

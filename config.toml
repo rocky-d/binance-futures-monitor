@@ -1,0 +1,34 @@
+[asyncio]
+slow_callback_duration = 10
+
+[loguru.logger]
+remove = true
+
+[[loguru.logger.add]]
+sink = "./logs/DEBUG__{time}.log"
+level = "DEBUG"
+format = "# {level.name}[{level.no}] | {time:YYYY-MM-DD HH:mm:ss.SSS Z} | File \"{file.path}\", line {line}, in {function} | {process.name}[{process.id}]:{thread.name}[{thread.id}]\n{message}\n"
+enqueue = true
+rotation = "8 MB"
+retention = 2
+
+[[loguru.logger.add]]
+sink = "./logs/INFO__{time}.log"
+level = "INFO"
+format = "# {level.name}[{level.no}] | {time:YYYY-MM-DD HH:mm:ss.SSS Z} | File \"{file.path}\", line {line}, in {function} | {process.name}[{process.id}]:{thread.name}[{thread.id}]\n{message}\n"
+enqueue = true
+rotation = "8 MB"
+retention = 128
+
+[[loguru.logger.add]]
+sink = "./logs/WARNING__{time}.log"
+level = "WARNING"
+format = "# {level.name}[{level.no}] | {time:YYYY-MM-DD HH:mm:ss.SSS Z} | File \"{file.path}\", line {line}, in {function} | {process.name}[{process.id}]:{thread.name}[{thread.id}]\n{message}\n"
+enqueue = true
+rotation = "8 MB"
+retention = 128
+
+[market_monitor]
+params = { "1m" = 10, "5m" = 15, "1h" = 25, "4h" = 40 }
+speed = 3
+maxm = 256
