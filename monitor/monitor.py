@@ -326,6 +326,7 @@ class MarketMonitor(BaseMonitor):
     ) -> None:
         logger.warning(f"on_error\n{repr(e)}")
         socket_manager.create_ws_connection()
+        self.wsclient.mark_price_all_market(speed=self.speed)
 
     def on_ping(
         self,
@@ -490,6 +491,7 @@ class OrderMonitor(BaseMonitor):
     ) -> None:
         logger.warning(f"on_error\n{repr(e)}")
         socket_manager.create_ws_connection()
+        self.wsclient.user_data(self.lk)
 
     def on_ping(
         self,
