@@ -30,9 +30,9 @@ async def main() -> None:
     monitors = []
     for kwargs in config["monitors"]:
         kwargs = copy.deepcopy(kwargs)
-        cls = kwargs.pop("cls")
         kwargs["key"] = config["binance_account"]["key"]
         kwargs["secret"] = config["binance_account"]["secret"]
+        cls = kwargs.pop("cls")
         if "PositionMonitor" == cls:
             monitor = PositionMonitor(position_bot, **kwargs)
         elif "MarketMonitor" == cls:
