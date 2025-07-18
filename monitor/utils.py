@@ -149,7 +149,7 @@ async def restapi_wrapper[ReturnType](
     max_tries = 3
     for _ in range(max_tries):
         try:
-            res = func(*args, **kwargs)
+            res = await asyncio.to_thread(func, *args, **kwargs)
             break
         except ClientError as e:
             excs.append(e)
