@@ -6,7 +6,7 @@ import json
 import math
 import pathlib
 from types import TracebackType
-from typing import Any, Self, Type
+from typing import Any, Iterable, Self, Type
 from binance.um_futures import UMFutures
 from binance.websocket.um_futures.websocket_client import UMFuturesWebsocketClient
 from binance.websocket.binance_socket_manager import BinanceSocketManager
@@ -23,6 +23,7 @@ __all__ = [
     "MarketMonitor",
     "OrderMonitor",
     "ExchangeMonitor",
+    "MonitorGroup",
 ]
 
 
@@ -92,6 +93,7 @@ class PositionMonitor(BaseMonitor):
         *,
         key: str | None = None,
         secret: str | None = None,
+        minute: int = 0,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -101,6 +103,7 @@ class PositionMonitor(BaseMonitor):
             secret=secret,
             **kwargs,
         )
+        self.minute = minute
 
     async def monitor_position(
         self,
@@ -134,11 +137,11 @@ class PositionMonitor(BaseMonitor):
         totl_max = float(var.setdefault("totl_max", "0.0"))
         account_dq = collections.deque(maxlen=1)
         positions_dq = collections.deque(maxlen=12)
-        delay = until_next_hour(minute=5)
+        delay = until_next_hour(minute=self.minute)
         sleep_task = asyncio.create_task(asyncio.sleep(delay))
         while True:
             await sleep_task
-            delay = until_next_hour(minute=5)
+            delay = until_next_hour(minute=self.minute)
             sleep_task = asyncio.create_task(asyncio.sleep(delay))
             position_card["body"]["elements"][1]["rows"] = rows1 = []
             position_card["body"]["elements"][2]["rows"] = rows2 = []
@@ -583,6 +586,7 @@ class ExchangeMonitor(BaseMonitor):
         *,
         key: str | None = None,
         secret: str | None = None,
+        minute: int = 0,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -593,6 +597,7 @@ class ExchangeMonitor(BaseMonitor):
             **kwargs,
         )
         self.positions = {}
+        self.minute = minute
 
     async def monitor_positions(
         self,
@@ -621,11 +626,11 @@ class ExchangeMonitor(BaseMonitor):
         exchange_card = copy.deepcopy(EXCHANGE_CARD)
 
         perpetual_time = 4133404800000
-        delay = until_next_hour(minute=5)
+        delay = until_next_hour(minute=self.minute)
         sleep_task = asyncio.create_task(asyncio.sleep(delay))
         while True:
             await sleep_task
-            delay = until_next_hour(minute=5)
+            delay = until_next_hour(minute=self.minute)
             sleep_task = asyncio.create_task(asyncio.sleep(delay))
             try:
                 data = await restapi_wrapper(self.client.exchange_info)
@@ -667,3 +672,54 @@ class ExchangeMonitor(BaseMonitor):
                 rows.append(row)
             if 0 < len(rows):
                 await self.bot.send_interactive(exchange_card)
+
+
+class MonitorGroup[BaseMonitor]:
+
+    def __init__(
+        self,
+        monitors: Iterable[BaseMonitor],
+    ) -> None:
+        self.monitors = list(monitors)
+
+    async def __aenter__(
+        self,
+    ) -> Self:
+        await self.start()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None,
+    ) -> None:
+        await self.stop()
+
+    async def start(
+        self,
+    ) -> None:
+        logger.info(f"{self} starting")
+        if self.running:
+            logger.warning(f"{self} have started")
+            return
+        for monitor in self.monitors:
+            await monitor.start()
+        logger.info(f"{self} started")
+
+    async def stop(
+        self,
+    ) -> None:
+        logger.info(f"{self} stopping")
+        if not self.running:
+            logger.warning(f"{self} have stopped")
+            return
+        for monitor in reversed(self.monitors):
+            await monitor.stop()
+        logger.info(f"{self} stopped")
+
+    @property
+    def running(
+        self,
+    ) -> bool:
+        return any(monitor.running for monitor in self.monitors)

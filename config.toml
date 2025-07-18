@@ -1,5 +1,5 @@
 [asyncio]
-slow_callback_duration = 10
+slow_callback_duration = 10.0
 
 [loguru.logger]
 remove = true
@@ -28,7 +28,23 @@ enqueue = true
 rotation = "8 MB"
 retention = 128
 
-[market_monitor]
-params = { "1m" = 10, "5m" = 15, "1h" = 25, "4h" = 40 }
+[[monitors]]
+cls = "PositionMonitor"
+minute = 0
+
+[[monitors]]
+cls = "PositionMonitor"
+minute = 30
+
+[[monitors]]
+cls = "MarketMonitor"
+params = { "1m" = 10.0, "5m" = 15.0, "1h" = 25.0, "4h" = 40.0 }
 speed = 3
 maxm = 256
+
+[[monitors]]
+cls = "OrderMonitor"
+
+[[monitors]]
+cls = "ExchangeMonitor"
+minute = 5
