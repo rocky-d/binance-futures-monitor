@@ -283,13 +283,21 @@ class MarketMonitor(BaseMonitor):
             tw.change_percent = change_percent
             tws.append(tw)
 
+    async def start(
+        self,
+    ) -> None:
+        if self.running:
+            return
+        self.wsclient.mark_price_all_market(speed=self.speed)
+        await super().start()
+
     async def stop(
         self,
     ) -> None:
         if not self.running:
             return
-        self.wsclient.stop()
         await super().stop()
+        self.wsclient.stop()
 
     def on_message(
         self,
@@ -366,7 +374,6 @@ class MarketMonitor(BaseMonitor):
     ) -> None:
         market_card = copy.deepcopy(MARKET_CARD)
 
-        self.wsclient.mark_price_all_market(speed=self.speed)
         memories = {}
         delay = 10 * 1.0
         sleep_task = asyncio.create_task(asyncio.sleep(delay))
@@ -441,11 +448,30 @@ class OrderMonitor(BaseMonitor):
         self.lk = "xxx"
         self.orders = collections.deque()
 
+    async def start(
+        self,
+    ) -> None:
+        if self.running:
+            return
+        try:
+            data = await restapi_wrapper(self.client.new_listen_key)
+        except Exception as e:
+            logger.error(repr(e))
+            error_card = copy.deepcopy(ERROR_CARD)
+            error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+            await self.bot.send_interactive(error_card)
+        lk_new = data["listenKey"]
+        if self.lk != lk_new:
+            self.lk = lk_new
+            self.wsclient.user_data(self.lk)
+        await super().start()
+
     async def stop(
         self,
     ) -> None:
         if not self.running:
             return
+        await super().stop()
         try:
             data = await restapi_wrapper(self.client.close_listen_key, self.lk)
         except Exception as e:
@@ -454,7 +480,6 @@ class OrderMonitor(BaseMonitor):
             error_card["body"]["elements"][1]["text"]["content"] = repr(e)
             await self.bot.send_interactive(error_card)
         self.wsclient.stop()
-        await super().stop()
 
     def on_message(
         self,
@@ -511,16 +536,6 @@ class OrderMonitor(BaseMonitor):
     ) -> None:
         error_card = copy.deepcopy(ERROR_CARD)
 
-        try:
-            data = await restapi_wrapper(self.client.new_listen_key)
-        except Exception as e:
-            logger.error(repr(e))
-            error_card["body"]["elements"][1]["text"]["content"] = repr(e)
-            await self.bot.send_interactive(error_card)
-        lk_new = data["listenKey"]
-        if self.lk != lk_new:
-            self.lk = lk_new
-            self.wsclient.user_data(self.lk)
         delay = 10 * 60 * 1.0
         sleep_task = asyncio.create_task(asyncio.sleep(delay))
         while True:
