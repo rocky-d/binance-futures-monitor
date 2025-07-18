@@ -533,6 +533,7 @@ class OrderMonitor(BaseMonitor):
                 continue
             lk_new = data["listenKey"]
             if self.lk != lk_new:
+                self.wsclient.user_data(self.lk, action="UNSUBSCRIBE")
                 self.lk = lk_new
                 self.wsclient.user_data(self.lk)
 
