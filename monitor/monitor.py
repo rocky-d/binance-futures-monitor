@@ -196,6 +196,8 @@ class PositionMonitor(BaseMonitor):
                 oth_totl = float(oth_account["totalMarginBalance"])
                 totl_pnl1h = totl - oth_totl
                 rows1[3]["pnl1h"] = totl_pnl1h
+            var = await load_var()
+            totl_max = max(totl_max, float(var.setdefault("totl_max", "0.0")))
             totl_max = max(totl_max, totl)
             if 0 < totl_max:
                 totl_drawdown_percent = 100 * (totl_max - totl) / totl_max
