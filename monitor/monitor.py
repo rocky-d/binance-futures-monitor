@@ -165,17 +165,24 @@ class PositionMonitor(BaseMonitor):
             rows1.append({"indicator": "总仓"})
             rows1.append({"indicator": "总资产"})
             long = shrt = 0.0
+            long_up, shrt_up = 0.0, 0.0
             for position in positions.values():
                 if "-" == position["notional"][0]:
                     shrt += -float(position["notional"])
+                    shrt_up += float(position["unRealizedProfit"])
                 else:
                     long += float(position["notional"])
+                    long_up += float(position["unRealizedProfit"])
             lort = long + shrt
+            lort_up = long_up + shrt_up
             totl = float(account["totalMarginBalance"])
             rows1[0]["notional"] = long
             rows1[1]["notional"] = shrt
             rows1[2]["notional"] = lort
             rows1[3]["notional"] = totl
+            rows1[0]["unrealized_profit"] = long_up
+            rows1[1]["unrealized_profit"] = shrt_up
+            rows1[2]["unrealized_profit"] = lort_up
             if 1 <= len(positions_dq):
                 oth_positions = positions_dq[-1]
                 oth_long = oth_shrt = 0.0

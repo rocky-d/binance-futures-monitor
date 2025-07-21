@@ -135,6 +135,16 @@ POSITION_CARD = {
                         "width": "120px",
                     },
                     {
+                        "name": "unrealized_profit",
+                        "display_name": "未实现盈亏(U)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 2,
+                            "separator": False,
+                        },
+                        "width": "120px",
+                    },
+                    {
                         "name": "pnl1h",
                         "display_name": "近1h盈亏(U)",
                         "data_type": "number",
