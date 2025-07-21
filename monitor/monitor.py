@@ -645,6 +645,7 @@ class ExchangeMonitor(BaseMonitor):
         error_card = copy.deepcopy(ERROR_CARD)
         exchange_card = copy.deepcopy(EXCHANGE_CARD)
 
+        memories = {}
         perpetual_time = 4133404800000
         delay = until_next_hour(minute=self.minute)
         sleep_task = asyncio.create_task(asyncio.sleep(delay))
@@ -678,6 +679,10 @@ class ExchangeMonitor(BaseMonitor):
                 delivery_date = data["deliveryDate"]
                 if not (server_time < delivery_date < perpetual_time or server_time < onboard_date < perpetual_time):
                     continue
+                t = time_ms()
+                if symbol in memories:
+                    continue
+                memories[symbol] = t
                 row = {}
                 fsymbol = format_symbol(symbol)
                 if symbol in self.positions:
