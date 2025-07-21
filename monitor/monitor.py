@@ -1,6 +1,5 @@
 import asyncio
 import collections
-import copy
 import inspect
 import json
 import math
@@ -12,10 +11,10 @@ from binance.websocket.um_futures.websocket_client import UMFuturesWebsocketClie
 from binance.websocket.binance_socket_manager import BinanceSocketManager
 from loguru import logger
 
+from .cards import *
 from .utils import *
 from .feishu import Bot
 from .timewindow import SparseTimewindow
-from .cards import ERROR_CARD, POSITION_CARD, MARKET_CARD, ORDER_CARD, EXCHANGE_CARD
 
 __all__ = [
     "BaseMonitor",
@@ -108,8 +107,8 @@ class PositionMonitor(BaseMonitor):
     async def monitor_position(
         self,
     ) -> None:
-        error_card = copy.deepcopy(ERROR_CARD)
-        position_card = copy.deepcopy(POSITION_CARD)
+        error_card = error_card_factory()
+        position_card = position_card_factory()
 
         var_path = pathlib.Path(r"./var.json")
 
@@ -352,7 +351,7 @@ class MarketMonitor(BaseMonitor):
     async def monitor_positions(
         self,
     ) -> None:
-        error_card = copy.deepcopy(ERROR_CARD)
+        error_card = error_card_factory()
 
         delay = 10 * 60 * 1.0
         sleep_task = asyncio.create_task(asyncio.sleep(0.0))
@@ -372,7 +371,7 @@ class MarketMonitor(BaseMonitor):
     async def monitor_market(
         self,
     ) -> None:
-        market_card = copy.deepcopy(MARKET_CARD)
+        market_card = market_card_factory()
 
         memories = {}
         delay = 10 * 1.0
@@ -457,7 +456,7 @@ class OrderMonitor(BaseMonitor):
             data = await restapi_wrapper(self.client.new_listen_key)
         except Exception as e:
             logger.error(repr(e))
-            error_card = copy.deepcopy(ERROR_CARD)
+            error_card = error_card_factory()
             error_card["body"]["elements"][1]["text"]["content"] = repr(e)
             await self.bot.send_interactive(error_card)
         lk_new = data["listenKey"]
@@ -476,7 +475,7 @@ class OrderMonitor(BaseMonitor):
             data = await restapi_wrapper(self.client.close_listen_key, self.lk)
         except Exception as e:
             logger.error(repr(e))
-            error_card = copy.deepcopy(ERROR_CARD)
+            error_card = error_card_factory()
             error_card["body"]["elements"][1]["text"]["content"] = repr(e)
             await self.bot.send_interactive(error_card)
         self.wsclient.stop()
@@ -534,7 +533,7 @@ class OrderMonitor(BaseMonitor):
     async def monitor_lk(
         self,
     ) -> None:
-        error_card = copy.deepcopy(ERROR_CARD)
+        error_card = error_card_factory()
 
         delay = 10 * 60 * 1.0
         sleep_task = asyncio.create_task(asyncio.sleep(delay))
@@ -557,7 +556,7 @@ class OrderMonitor(BaseMonitor):
     async def monitor_order(
         self,
     ) -> None:
-        order_card = copy.deepcopy(ORDER_CARD)
+        order_card = order_card_factory()
 
         delay = until_next_minute()
         sleep_task = asyncio.create_task(asyncio.sleep(delay))
@@ -622,7 +621,7 @@ class ExchangeMonitor(BaseMonitor):
     async def monitor_positions(
         self,
     ) -> None:
-        error_card = copy.deepcopy(ERROR_CARD)
+        error_card = error_card_factory()
 
         delay = 50 * 60 * 1.0
         sleep_task = asyncio.create_task(asyncio.sleep(0.0))
@@ -642,8 +641,8 @@ class ExchangeMonitor(BaseMonitor):
     async def monitor_exchange(
         self,
     ) -> None:
-        error_card = copy.deepcopy(ERROR_CARD)
-        exchange_card = copy.deepcopy(EXCHANGE_CARD)
+        error_card = error_card_factory()
+        exchange_card = exchange_card_factory()
 
         memories = {}
         perpetual_time = 4133404800000

@@ -1,11 +1,13 @@
+import copy
+
 __all__ = [
-    "LAUNCH_CARD",
-    "FINISH_CARD",
-    "ERROR_CARD",
-    "POSITION_CARD",
-    "MARKET_CARD",
-    "ORDER_CARD",
-    "EXCHANGE_CARD",
+    "launch_card_factory",
+    "finish_card_factory",
+    "error_card_factory",
+    "position_card_factory",
+    "market_card_factory",
+    "order_card_factory",
+    "exchange_card_factory",
 ]
 
 LAUNCH_CARD = {
@@ -489,3 +491,11 @@ EXCHANGE_CARD = {
         ],
     },
 }
+
+launch_card_factory = lambda: copy.deepcopy(LAUNCH_CARD)
+finish_card_factory = lambda: copy.deepcopy(FINISH_CARD)
+error_card_factory = lambda: copy.deepcopy(ERROR_CARD)
+position_card_factory = lambda: copy.deepcopy(POSITION_CARD)
+market_card_factory = lambda: copy.deepcopy(MARKET_CARD)
+order_card_factory = lambda: copy.deepcopy(ORDER_CARD)
+exchange_card_factory = lambda: copy.deepcopy(EXCHANGE_CARD)

@@ -4,7 +4,7 @@ from types import TracebackType
 from typing import Self, Type
 from loguru import logger
 
-from .cards import LAUNCH_CARD, FINISH_CARD
+from .cards import launch_card_factory, finish_card_factory
 
 __all__ = [
     "BaseBot",
@@ -90,7 +90,7 @@ class Bot(BaseBot):
         if self.running:
             return
         res = await super().start()
-        await self.send_interactive(LAUNCH_CARD)
+        await self.send_interactive(launch_card_factory())
         return res
 
     async def stop(
@@ -98,7 +98,7 @@ class Bot(BaseBot):
     ) -> None:
         if not self.running:
             return
-        await self.send_interactive(FINISH_CARD)
+        await self.send_interactive(finish_card_factory())
         await super().stop()
 
     async def _engine(
@@ -177,7 +177,7 @@ class BotNowait(BaseBot):
         if self.running:
             return
         res = await super().start()
-        self.send_interactive(LAUNCH_CARD)
+        self.send_interactive(launch_card_factory())
         return res
 
     async def stop(
@@ -185,7 +185,7 @@ class BotNowait(BaseBot):
     ) -> None:
         if not self.running:
             return
-        self.send_interactive(FINISH_CARD)
+        self.send_interactive(finish_card_factory())
         await super().stop()
 
     async def _engine(
