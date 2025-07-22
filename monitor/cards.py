@@ -376,6 +376,16 @@ ORDER_CARD = {
                         "width": "160px",
                     },
                     {
+                        "name": "order_id",
+                        "display_name": "订单ID",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 0,
+                            "separator": False,
+                        },
+                        "width": "100px",
+                    },
+                    {
                         "name": "side",
                         "display_name": "方向",
                         "data_type": "markdown",
@@ -398,8 +408,58 @@ ORDER_CARD = {
                         "width": "80px",
                     },
                     {
+                        "name": "last_price",
+                        "display_name": "价格(U)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 5,
+                            "separator": False,
+                        },
+                        "width": "120px",
+                    },
+                    {
                         "name": "last_notional",
                         "display_name": "价值(U)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 2,
+                            "separator": False,
+                        },
+                        "width": "80px",
+                    },
+                    {
+                        "name": "slippage",
+                        "display_name": "滑点(U)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 5,
+                            "separator": False,
+                        },
+                        "width": "120px",
+                    },
+                    {
+                        "name": "slippage_percent",
+                        "display_name": "滑点(%)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 2,
+                            "separator": False,
+                        },
+                        "width": "80px",
+                    },
+                    {
+                        "name": "commission",
+                        "display_name": "手续费(U)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 5,
+                            "separator": False,
+                        },
+                        "width": "120px",
+                    },
+                    {
+                        "name": "commission_percent",
+                        "display_name": "手续费(%)",
                         "data_type": "number",
                         "format": {
                             "precision": 2,
@@ -416,6 +476,28 @@ ORDER_CARD = {
                             "separator": False,
                         },
                         "width": "120px",
+                    },
+                    {
+                        "name": "filled_percent",
+                        "display_name": "已成交(%)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 2,
+                            "separator": False,
+                        },
+                        "width": "80px",
+                    },
+                    {
+                        "name": "delay",
+                        "display_name": "延迟",
+                        "data_type": "markdown",
+                        "width": "80px",
+                    },
+                    {
+                        "name": "role",
+                        "display_name": "角色",
+                        "data_type": "markdown",
+                        "width": "80px",
                     },
                     {
                         "name": "task",

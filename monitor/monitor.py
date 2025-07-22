@@ -1,4 +1,5 @@
 import asyncio
+import bisect
 import collections
 import inspect
 import json
@@ -13,8 +14,8 @@ from loguru import logger
 
 from .cards import *
 from .utils import *
-from .feishu import Bot
-from .timewindow import SparseTimewindow
+from .feishu import *
+from .timewindow import *
 
 __all__ = [
     "BaseMonitor",
@@ -240,13 +241,15 @@ class PositionMonitor(BaseMonitor):
                 if 1 <= len(positions_dq) and symbol in positions_dq[-1]:
                     oth_positions = positions_dq[-1]
                     oth_mark_price = float(oth_positions[symbol]["markPrice"])
-                    change1h_percent = 100 * (mark_price - oth_mark_price) / oth_mark_price
-                    row["change1h_percent"] = change1h_percent
+                    if 0 < oth_mark_price:
+                        change1h_percent = 100 * (mark_price - oth_mark_price) / oth_mark_price
+                        row["change1h_percent"] = change1h_percent
                 if 12 <= len(positions_dq) and symbol in positions_dq[-12]:
                     oth_positions = positions_dq[-12]
                     oth_mark_price = float(oth_positions[symbol]["markPrice"])
-                    change12h_percent = 100 * (mark_price - oth_mark_price) / oth_mark_price
-                    row["change12h_percent"] = change12h_percent
+                    if 0 < oth_mark_price:
+                        change12h_percent = 100 * (mark_price - oth_mark_price) / oth_mark_price
+                        row["change12h_percent"] = change12h_percent
                 rows2.append(row)
             account_dq.append(account)
             positions_dq.append(positions)
@@ -302,6 +305,8 @@ class MarketMonitor(BaseMonitor):
         if self.running:
             return
         self.wsclient.mark_price_all_market(speed=self.speed)
+        stream = f"!markPrice@arr@{self.speed}s" if 1 == self.speed else "!markPrice@arr"
+        logger.info(f"SUBSCRIBE: {stream}")
         await super().start()
 
     async def stop(
@@ -317,13 +322,13 @@ class MarketMonitor(BaseMonitor):
         socket_manager: BinanceSocketManager,
         data: bytes | str,
     ) -> None:
-        logger.debug(f"on_message\n{data}")
         try:
             data = json.loads(data)
         except json.JSONDecodeError as e:
             logger.warning(f"{repr(e)}\n{data}")
             return
         if isinstance(data, list):
+            logger.debug(f"on_message\n{data}")
             mps = {x["s"]: x for x in data}
             for tw in self.tws:
                 tw.push(mps, time_ms())
@@ -348,6 +353,8 @@ class MarketMonitor(BaseMonitor):
         logger.warning(f"on_error\n{repr(e)}")
         socket_manager.create_ws_connection()
         self.wsclient.mark_price_all_market(speed=self.speed)
+        stream = f"!markPrice@arr@{self.speed}s" if 1 == self.speed else "!markPrice@arr"
+        logger.info(f"SUBSCRIBE: {stream}")
 
     def on_ping(
         self,
@@ -405,6 +412,8 @@ class MarketMonitor(BaseMonitor):
                 for symbol in mps0.keys() & mps1.keys():
                     mp0 = float(mps0[symbol]["p"])
                     mp1 = float(mps1[symbol]["p"])
+                    if not 0 < mp0:
+                        continue
                     change_percent = 100 * (mp1 - mp0) / mp0
                     if abs(change_percent) < tw.change_percent:
                         continue
@@ -441,6 +450,7 @@ class OrderMonitor(BaseMonitor):
         *,
         key: str | None = None,
         secret: str | None = None,
+        bookticker_dqs_maxlen: int = 100,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -458,7 +468,10 @@ class OrderMonitor(BaseMonitor):
             on_ping=self.on_ping,
             on_pong=self.on_pong,
         )
-        self.lk = "xxx"
+        self.bookticker_dqs_maxlen = bookticker_dqs_maxlen
+        self.listenkey = "xxx"
+        self.bookticker_dqs = {}
+        self.order_tickers = {}
         self.orders = collections.deque()
 
     async def start(
@@ -473,10 +486,9 @@ class OrderMonitor(BaseMonitor):
             error_card = error_card_factory()
             error_card["body"]["elements"][1]["text"]["content"] = repr(e)
             await self.bot.send_interactive(error_card)
-        lk_new = data["listenKey"]
-        if self.lk != lk_new:
-            self.lk = lk_new
-            self.wsclient.user_data(self.lk)
+        self.listenkey = data["listenKey"]
+        self.wsclient.user_data(self.listenkey)
+        logger.info(f"SUBSCRIBE: {self.listenkey}")
         await super().start()
 
     async def stop(
@@ -485,30 +497,49 @@ class OrderMonitor(BaseMonitor):
         if not self.running:
             return
         await super().stop()
+        self.wsclient.stop()
         try:
-            data = await restapi_wrapper(self.client.close_listen_key, self.lk)
+            data = await restapi_wrapper(self.client.close_listen_key, self.listenkey)
         except Exception as e:
             logger.error(repr(e))
             error_card = error_card_factory()
             error_card["body"]["elements"][1]["text"]["content"] = repr(e)
             await self.bot.send_interactive(error_card)
-        self.wsclient.stop()
 
     def on_message(
         self,
         socket_manager: BinanceSocketManager,
         data: bytes | str,
     ) -> None:
-        logger.info(f"on_message\n{data}")
         try:
             data = json.loads(data)
         except json.JSONDecodeError as e:
             logger.warning(f"{repr(e)}\n{data}")
             return
         if isinstance(data, dict) and "ORDER_TRADE_UPDATE" == data.get("e"):
+            logger.info(f"on_message\n{data}")
             if "NEW" == data["o"]["x"]:
-                return
-            self.orders.append(data)
+                symbol = data["o"]["s"]
+                timestamp = data["o"]["T"]
+                self.order_tickers[data["o"]["i"]] = {}
+                self.order_tickers[data["o"]["i"]]["timestamp"] = timestamp
+                if symbol not in self.bookticker_dqs:
+                    return
+                bookticker_dq = self.bookticker_dqs[symbol]
+                idx = bisect.bisect_right(bookticker_dq, timestamp, key=lambda x: x["T"]) - 1
+                logger.debug(f"idx: {idx}")
+                if idx < 0:
+                    logger.warning(f"No bookTicker for {symbol} at {timestamp}")
+                    return
+                bookticker = bookticker_dq[idx]
+                self.order_tickers[data["o"]["i"]]["bookticker"] = bookticker
+            else:
+                self.orders.append(data)
+        if isinstance(data, dict) and "bookTicker" == data.get("e"):
+            symbol = data["s"]
+            if symbol not in self.bookticker_dqs:
+                self.bookticker_dqs[symbol] = collections.deque(maxlen=self.bookticker_dqs_maxlen)
+            self.bookticker_dqs[symbol].append(data)
 
     def on_open(
         self,
@@ -529,7 +560,11 @@ class OrderMonitor(BaseMonitor):
     ) -> None:
         logger.warning(f"on_error\n{repr(e)}")
         socket_manager.create_ws_connection()
-        self.wsclient.user_data(self.lk)
+        self.wsclient.user_data(self.listenkey)
+        logger.info(f"SUBSCRIBE: {self.listenkey}")
+        for symbol in self.bookticker_dqs:
+            self.wsclient.book_ticker(symbol)
+            logger.info(f"SUBSCRIBE: {symbol.lower()}@bookTicker")
 
     def on_ping(
         self,
@@ -544,7 +579,7 @@ class OrderMonitor(BaseMonitor):
     ) -> None:
         logger.debug(f"on_pong")
 
-    async def monitor_lk(
+    async def monitor_listenkey(
         self,
     ) -> None:
         error_card = error_card_factory()
@@ -561,11 +596,40 @@ class OrderMonitor(BaseMonitor):
                 error_card["body"]["elements"][1]["text"]["content"] = repr(e)
                 await self.bot.send_interactive(error_card)
                 continue
-            lk_new = data["listenKey"]
-            if self.lk != lk_new:
-                self.wsclient.user_data(self.lk, action="UNSUBSCRIBE")
-                self.lk = lk_new
-                self.wsclient.user_data(self.lk)
+            new_listenkey = data["listenKey"]
+            if self.listenkey == new_listenkey:
+                continue
+            self.wsclient.user_data(self.listenkey, action="UNSUBSCRIBE")
+            logger.info(f"UNSUBSCRIBE: {self.listenkey}")
+            self.listenkey = new_listenkey
+            self.wsclient.user_data(self.listenkey)
+            logger.info(f"SUBSCRIBE: {self.listenkey}")
+
+    async def monitor_booktickers(
+        self,
+    ) -> None:
+        error_card = error_card_factory()
+
+        delay = 60 * 60 * 1.0
+        sleep_task = asyncio.create_task(asyncio.sleep(0.0))
+        while True:
+            await sleep_task
+            sleep_task = asyncio.create_task(asyncio.sleep(delay))
+            try:
+                data = await restapi_wrapper(self.client.book_ticker)
+            except Exception as e:
+                logger.error(repr(e))
+                error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+                await self.bot.send_interactive(error_card)
+                continue
+            symbols = {x["symbol"] for x in data}
+            for symbol in self.bookticker_dqs.keys() - symbols:
+                self.wsclient.book_ticker(symbol, action="UNSUBSCRIBE")
+                del self.bookticker_dqs[symbol]
+                logger.info(f"UNSUBSCRIBE: {symbol.lower()}@bookTicker")
+            for symbol in symbols - self.bookticker_dqs.keys():
+                self.wsclient.book_ticker(symbol)
+                logger.info(f"SUBSCRIBE: {symbol.lower()}@bookTicker")
 
     async def monitor_order(
         self,
@@ -583,25 +647,52 @@ class OrderMonitor(BaseMonitor):
             self.orders.clear()
             for order in orders:
                 timestamp = order["o"]["T"]
+                order_id = order["o"]["i"]
                 side = order["o"]["S"]
                 fside = "<font color='green'>买</font>" if "BUY" == side else "<font color='red'>卖</font>"
                 symbol = order["o"]["s"]
                 fsymbol = format_symbol(symbol)
-                last_quantity = float(order["o"]["l"])
                 last_price = float(order["o"]["L"])
+                last_quantity = float(order["o"]["l"])
                 last_notional = last_quantity * last_price
                 realized_profit = float(order["o"]["rp"])
+                price = float(order["o"]["p"])
+                quantity = float(order["o"]["q"])
+                cum_quantity = float(order["o"]["z"])
+                filled_percent = 100 * cum_quantity / quantity if 0 < quantity else 0.0
+                slippage = last_price - price
+                slippage_percent = 100 * slippage / price if 0 < price else 0.0
+                commission = float(order["o"]["n"])
+                commission_percent = 100 * commission / last_notional if 0 < last_notional else 0.0
+                if order_id in self.order_tickers:
+                    order_ticker = self.order_tickers.pop(order_id)
+                    delay = timestamp - order_ticker["timestamp"]
+                    fdelay = format_milliseconds(delay)
+                else:
+                    delay = None
+                    fdelay = "--"
+                is_maker = order["o"]["m"]
+                role = "MAKER" if is_maker else "TAKER"
                 task = order["o"]["x"]
                 status = order["o"]["X"]
                 order_type = order["o"]["o"]
                 valid_type = order["o"]["f"]
                 row = {}
                 row["timestamp"] = timestamp
+                row["order_id"] = order_id
                 row["side"] = fside
                 row["symbol"] = fsymbol
                 row["last_quantity"] = last_quantity
+                row["last_price"] = last_price
                 row["last_notional"] = last_notional
+                row["slippage"] = slippage
+                row["slippage_percent"] = slippage_percent
+                row["commission"] = commission
+                row["commission_percent"] = commission_percent
                 row["realized_profit"] = realized_profit
+                row["filled_percent"] = filled_percent
+                row["delay"] = fdelay
+                row["role"] = role
                 row["task"] = task
                 row["status"] = status
                 row["order_type"] = order_type
