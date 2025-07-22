@@ -1,9 +1,12 @@
+import aiofiles
 import asyncio
 import datetime
+import json
 import math
+import pathlib
 import requests
 import time
-from typing import Callable
+from typing import Any, Callable
 from binance.error import ClientError, ServerError
 
 __all__ = [
@@ -17,6 +20,8 @@ __all__ = [
     "until_next_minute",
     "until_next_second",
     "restapi_wrapper",
+    "json_load",
+    "json_dump",
 ]
 
 
@@ -165,3 +170,26 @@ async def restapi_wrapper[ReturnType](
     else:
         raise ExceptionGroup(f"{max_tries=}", excs)
     return res
+
+
+async def json_load(
+    path: pathlib.Path,
+) -> Any:
+    if not path.is_file():
+        return {}
+    async with aiofiles.open(path, mode="r", encoding="utf-8") as f:
+        s = await f.read()
+    var = json.loads(s)
+    return var
+
+
+async def json_dump(
+    path: pathlib.Path,
+    obj: Any,
+) -> None:
+    if not path.is_file():
+        await asyncio.to_thread(path.parent.mkdir, parents=True, exist_ok=True)
+    s = json.dumps(obj)
+    async with aiofiles.open(path, mode="w", encoding="utf-8") as f:
+        await f.write(s)
+        await f.flush()

@@ -1,3 +1,4 @@
+import aiofiles
 import asyncio
 import bisect
 import collections
@@ -115,28 +116,7 @@ class PositionMonitor(BaseMonitor):
         position_card = position_card_factory()
 
         var_path = pathlib.Path(r"./var.json")
-
-        async def load_var() -> Any:
-            def _load_var() -> Any:
-                if not var_path.is_file():
-                    return {}
-                with open(var_path, mode="r") as f:
-                    var = json.load(f)
-                return var
-
-            return await asyncio.to_thread(_load_var)
-
-        async def dump_var(
-            var: Any,
-        ) -> None:
-            def _dump_var() -> None:
-                var_path.parent.mkdir(parents=True, exist_ok=True)
-                with open(var_path, mode="w") as f:
-                    json.dump(var, f)
-
-            await asyncio.to_thread(_dump_var)
-
-        var = await load_var()
+        var = await json_load(var_path)
         totl_max = float(var.setdefault("totl_max", "0.0"))
         account_dq = collections.deque(maxlen=1)
         positions_dq = collections.deque(maxlen=12)
@@ -208,7 +188,7 @@ class PositionMonitor(BaseMonitor):
                 oth_totl = float(oth_account["totalMarginBalance"])
                 totl_pnl1h = totl - oth_totl
                 rows1[3]["pnl1h"] = totl_pnl1h
-            var = await load_var()
+            var = await json_load(var_path)
             totl_max = max(totl_max, float(var.setdefault("totl_max", "0.0")))
             totl_max = max(totl_max, totl)
             if 0 < totl_max:
@@ -257,7 +237,7 @@ class PositionMonitor(BaseMonitor):
                 position_card["body"]["elements"].append(at_all_element)
             await self.bot.send_interactive(position_card)
             var["totl_max"] = str(totl_max)
-            await dump_var(var)
+            await json_dump(var_path, var)
 
 
 class MarketMonitor(BaseMonitor):
