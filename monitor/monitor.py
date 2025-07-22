@@ -546,9 +546,14 @@ class OrderMonitor(BaseMonitor):
         socket_manager.create_ws_connection()
         self.wsclient.user_data(self.listenkey)
         logger.info(f"SUBSCRIBE: {self.listenkey}")
-        for symbol in self.bookticker_dqs:
-            self.wsclient.book_ticker(symbol)
-            logger.info(f"SUBSCRIBE: {symbol.lower()}@bookTicker")
+
+        async def subscribe_booktickers():
+            for symbol in self.bookticker_dqs:
+                await asyncio.sleep(0.2)
+                self.wsclient.book_ticker(symbol)
+                logger.info(f"SUBSCRIBE: {symbol.lower()}@bookTicker")
+
+        asyncio.create_task(subscribe_booktickers())
 
     def on_ping(
         self,
@@ -608,10 +613,12 @@ class OrderMonitor(BaseMonitor):
                 continue
             symbols = {x["symbol"] for x in data}
             for symbol in self.bookticker_dqs.keys() - symbols:
+                await asyncio.sleep(0.2)
                 self.wsclient.book_ticker(symbol, action="UNSUBSCRIBE")
-                del self.bookticker_dqs[symbol]
                 logger.info(f"UNSUBSCRIBE: {symbol.lower()}@bookTicker")
+                del self.bookticker_dqs[symbol]
             for symbol in symbols - self.bookticker_dqs.keys():
+                await asyncio.sleep(0.2)
                 self.wsclient.book_ticker(symbol)
                 logger.info(f"SUBSCRIBE: {symbol.lower()}@bookTicker")
 
