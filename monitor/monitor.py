@@ -1,4 +1,3 @@
-import aiofiles
 import asyncio
 import bisect
 import collections
@@ -7,7 +6,7 @@ import json
 import math
 import pathlib
 from types import TracebackType
-from typing import Any, Iterable, Self, Type
+from typing import Iterable, Self, Type
 from binance.um_futures import UMFutures
 from binance.websocket.um_futures.websocket_client import UMFuturesWebsocketClient
 from binance.websocket.binance_socket_manager import BinanceSocketManager
