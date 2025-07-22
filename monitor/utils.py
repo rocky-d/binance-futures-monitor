@@ -54,8 +54,10 @@ def parse_interval(
 def format_milliseconds(
     milliseconds: int,
 ) -> str:
-    if milliseconds <= 0:
-        raise ValueError("milliseconds need to be greater than zero")
+    if milliseconds < 0:
+        raise ValueError("milliseconds cannot be negative")
+    if 0 == milliseconds:
+        return "0ms"
     s = ""
     seconds, milliseconds = divmod(milliseconds, 1000)
     if 0 < milliseconds:
