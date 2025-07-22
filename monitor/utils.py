@@ -206,6 +206,14 @@ async def json_dump(
             await f.flush()
 
 
+def csv_field(
+    s: str,
+) -> str:
+    if "," in s or "\n" in s or '"' in s:
+        s = f'"{s.replace('"', '""')}"'
+    return s
+
+
 async def csv_append(
     path: pathlib.Path,
     row: dict[str, Any],
@@ -217,10 +225,10 @@ async def csv_append(
         if not path.is_file():
             await asyncio.to_thread(path.parent.mkdir, parents=True, exist_ok=True)
             async with aiofiles.open(path, mode="w", encoding="utf-8") as f:
-                await f.write(",".join(keys) + "\n")
+                await f.write(",".join(map(csv_field, keys)) + "\n")
                 await f.flush()
         async with aiofiles.open(path, mode="a", encoding="utf-8") as f:
-            await f.write(",".join(str(row[key]) for key in keys) + "\n")
+            await f.write(",".join(csv_field(str(row[key])) for key in keys) + "\n")
             await f.flush()
 
 
@@ -237,8 +245,8 @@ async def csv_appendrows(
         if not path.is_file():
             await asyncio.to_thread(path.parent.mkdir, parents=True, exist_ok=True)
             async with aiofiles.open(path, mode="w", encoding="utf-8") as f:
-                await f.write(",".join(keys) + "\n")
+                await f.write(",".join(map(csv_field, keys)) + "\n")
                 await f.flush()
         async with aiofiles.open(path, mode="a", encoding="utf-8") as f:
-            await f.writelines(",".join(str(row[key]) for key in keys) + "\n" for row in rows)
+            await f.writelines(",".join(csv_field(str(row[key])) for key in keys) + "\n" for row in rows)
             await f.flush()
