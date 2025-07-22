@@ -656,7 +656,7 @@ class OrderMonitor(BaseMonitor):
                 quantity = float(order["o"]["q"])
                 cum_quantity = float(order["o"]["z"])
                 filled_percent = 100 * cum_quantity / quantity if 0 < quantity else 0.0
-                slippage = last_price - price
+                slippage = last_price - price if "BUY" == side else price - last_price
                 slippage_percent = 100 * slippage / price if 0 < price else 0.0
                 commission = float(order["o"]["n"])
                 commission_percent = 100 * commission / last_notional if 0 < last_notional else 0.0
