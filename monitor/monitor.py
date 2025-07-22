@@ -309,13 +309,15 @@ class MarketMonitor(BaseMonitor):
         try:
             data = json.loads(data)
         except json.JSONDecodeError as e:
-            logger.warning(f"{repr(e)}\n{data}")
+            logger.warning(f"on_message\n{repr(e)}\n{data}")
             return
         if isinstance(data, list):
             logger.debug(f"on_message\n{data}")
             mps = {x["s"]: x for x in data}
             for tw in self.tws:
                 tw.push(mps, time_ms())
+        else:
+            logger.info(f"on_message\n{data}")
 
     def on_open(
         self,
@@ -498,7 +500,7 @@ class OrderMonitor(BaseMonitor):
         try:
             data = json.loads(data)
         except json.JSONDecodeError as e:
-            logger.warning(f"{repr(e)}\n{data}")
+            logger.warning(f"on_message\n{repr(e)}\n{data}")
             return
         if isinstance(data, dict) and "ORDER_TRADE_UPDATE" == data.get("e"):
             logger.info(f"on_message\n{data}")
@@ -519,11 +521,13 @@ class OrderMonitor(BaseMonitor):
                 self.order_tickers[data["o"]["i"]]["bookticker"] = bookticker
             else:
                 self.orders.append(data)
-        if isinstance(data, dict) and "bookTicker" == data.get("e"):
+        elif isinstance(data, dict) and "bookTicker" == data.get("e"):
             symbol = data["s"]
             if symbol not in self.bookticker_dqs:
                 self.bookticker_dqs[symbol] = collections.deque(maxlen=self.bookticker_dqs_maxlen)
             self.bookticker_dqs[symbol].append(data)
+        else:
+            logger.info(f"on_message\n{data}")
 
     def on_open(
         self,
