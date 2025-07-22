@@ -153,13 +153,13 @@ class PositionMonitor(BaseMonitor):
             rows1.append({"indicator": "总资产"})
             long = shrt = 0.0
             long_up, shrt_up = 0.0, 0.0
-            for position in position.values():
-                if "-" == position["notional"][0]:
-                    shrt += -float(position["notional"])
-                    shrt_up += float(position["unRealizedProfit"])
+            for pos in position.values():
+                if "-" == pos["notional"][0]:
+                    shrt += -float(pos["notional"])
+                    shrt_up += float(pos["unRealizedProfit"])
                 else:
-                    long += float(position["notional"])
-                    long_up += float(position["unRealizedProfit"])
+                    long += float(pos["notional"])
+                    long_up += float(pos["unRealizedProfit"])
             lort = long + shrt
             lort_up = long_up + shrt_up
             totl = float(account["totalMarginBalance"])
@@ -171,13 +171,13 @@ class PositionMonitor(BaseMonitor):
             rows1[1]["unrealized_profit"] = shrt_up
             rows1[2]["unrealized_profit"] = lort_up
             if 1 <= len(position_dq):
-                oth_positions = position_dq[-1]
+                oth_position = position_dq[-1]
                 oth_long = oth_shrt = 0.0
-                for position in oth_positions.values():
-                    if "-" == position["notional"][0]:
-                        oth_shrt += -float(position["notional"])
+                for oth_pos in oth_position.values():
+                    if "-" == oth_pos["notional"][0]:
+                        oth_shrt += -float(oth_pos["notional"])
                     else:
-                        oth_long += float(position["notional"])
+                        oth_long += float(oth_pos["notional"])
                 long_pnl1h = long - oth_long
                 shrt_pnl1h = oth_shrt - shrt
                 lort_pnl1h = long_pnl1h + shrt_pnl1h
@@ -195,20 +195,20 @@ class PositionMonitor(BaseMonitor):
             if 0 < totl_max:
                 totl_drawdown_percent = 100 * (totl_max - totl) / totl_max
                 rows1[3]["drawdown_percent"] = totl_drawdown_percent
-            for position in sorted(
+            for pos in sorted(
                 position.values(),
                 key=lambda x: ("-" == x["notional"][0], -float(x["unRealizedProfit"])),
             ):
-                ps = "-" == position["notional"][0]
+                ps = "-" == pos["notional"][0]
                 ps_str = "<font color='red'>空</font>" if ps else "<font color='green'>多</font>"
-                symbol = position["symbol"]
+                symbol = pos["symbol"]
                 fsymbol = format_symbol(symbol)
-                notional = abs(float(position["notional"]))
+                notional = abs(float(pos["notional"]))
                 notional_percent = 100 * notional / lort if 0 < lort else 0.0
-                unrealized_profit = float(position["unRealizedProfit"])
-                position_amt = abs(float(position["positionAmt"]))
-                entry_price = float(position["entryPrice"])
-                mark_price = float(position["markPrice"])
+                unrealized_profit = float(pos["unRealizedProfit"])
+                position_amt = abs(float(pos["positionAmt"]))
+                entry_price = float(pos["entryPrice"])
+                mark_price = float(pos["markPrice"])
                 entry_notional = entry_price * position_amt
                 unrealized_profit_percent = 100 * unrealized_profit / entry_notional if 0 < entry_notional else 0.0
                 row = {"position": f"{ps_str} {fsymbol}"}
@@ -220,14 +220,14 @@ class PositionMonitor(BaseMonitor):
                 row["entry_price"] = entry_price
                 row["mark_price"] = mark_price
                 if 1 <= len(position_dq) and symbol in position_dq[-1]:
-                    oth_positions = position_dq[-1]
-                    oth_mark_price = float(oth_positions[symbol]["markPrice"])
+                    oth_position = position_dq[-1]
+                    oth_mark_price = float(oth_position[symbol]["markPrice"])
                     if 0 < oth_mark_price:
                         change1h_percent = 100 * (mark_price - oth_mark_price) / oth_mark_price
                         row["change1h_percent"] = change1h_percent
                 if 12 <= len(position_dq) and symbol in position_dq[-12]:
-                    oth_positions = position_dq[-12]
-                    oth_mark_price = float(oth_positions[symbol]["markPrice"])
+                    oth_position = position_dq[-12]
+                    oth_mark_price = float(oth_position[symbol]["markPrice"])
                     if 0 < oth_mark_price:
                         change12h_percent = 100 * (mark_price - oth_mark_price) / oth_mark_price
                         row["change12h_percent"] = change12h_percent
