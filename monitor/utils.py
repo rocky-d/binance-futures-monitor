@@ -22,6 +22,8 @@ __all__ = [
     "restapi_wrapper",
     "json_load",
     "json_dump",
+    "csv_append",
+    "csv_appendrows",
 ]
 
 
@@ -192,4 +194,36 @@ async def json_dump(
     s = json.dumps(obj)
     async with aiofiles.open(path, mode="w", encoding="utf-8") as f:
         await f.write(s)
+        await f.flush()
+
+
+async def csv_append(
+    path: pathlib.Path,
+    row: dict[str, Any],
+):
+    keys = list(row.keys())
+    if not path.is_file():
+        await asyncio.to_thread(path.parent.mkdir, parents=True, exist_ok=True)
+        async with aiofiles.open(path, mode="w", encoding="utf-8") as f:
+            await f.write(",".join(keys) + "\n")
+            await f.flush()
+    async with aiofiles.open(path, mode="a", encoding="utf-8") as f:
+        await f.write(",".join(str(row[key]) for key in keys) + "\n")
+        await f.flush()
+
+
+async def csv_appendrows(
+    path: pathlib.Path,
+    rows: list[dict[str, Any]],
+) -> None:
+    if 0 == len(rows):
+        return
+    keys = list(rows[0].keys())
+    if not path.is_file():
+        await asyncio.to_thread(path.parent.mkdir, parents=True, exist_ok=True)
+        async with aiofiles.open(path, mode="w", encoding="utf-8") as f:
+            await f.write(",".join(keys) + "\n")
+            await f.flush()
+    async with aiofiles.open(path, mode="a", encoding="utf-8") as f:
+        await f.writelines(",".join(str(row[key]) for key in keys) + "\n" for row in rows)
         await f.flush()

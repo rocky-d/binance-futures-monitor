@@ -616,6 +616,7 @@ class OrderMonitor(BaseMonitor):
     ) -> None:
         order_card = order_card_factory()
 
+        orders_path = pathlib.Path(r"./orders.csv")
         delay = until_next_minute()
         sleep_task = asyncio.create_task(asyncio.sleep(delay))
         while True:
@@ -680,6 +681,7 @@ class OrderMonitor(BaseMonitor):
                 rows.append(row)
             if 0 < len(rows):
                 await self.bot.send_interactive(order_card)
+                await csv_appendrows(orders_path, rows)
 
 
 class ExchangeMonitor(BaseMonitor):
