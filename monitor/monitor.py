@@ -115,11 +115,11 @@ class PositionMonitor(BaseMonitor):
         error_card = error_card_factory()
         position_card = position_card_factory()
 
-        var_path = pathlib.Path(r"./var.json")
-        var = await json_load(var_path)
+        var_json = pathlib.Path(r"./var.json")
+        var = await json_load(var_json)
         totl_max = float(var.setdefault("totl_max", "0.0"))
         account_dq = collections.deque(maxlen=1)
-        positions_dq = collections.deque(maxlen=12)
+        position_dq = collections.deque(maxlen=12)
         delay = until_next_hour(minute=self.minute)
         sleep_task = asyncio.create_task(asyncio.sleep(delay))
         while True:
@@ -145,14 +145,14 @@ class PositionMonitor(BaseMonitor):
                 error_card["body"]["elements"][1]["text"]["content"] = repr(e)
                 await self.bot.send_interactive(error_card)
                 continue
-            positions = {x["symbol"]: x for x in data}
+            position = {x["symbol"]: x for x in data}
             rows1.append({"indicator": "多仓"})
             rows1.append({"indicator": "空仓"})
             rows1.append({"indicator": "总仓"})
             rows1.append({"indicator": "总资产"})
             long = shrt = 0.0
             long_up, shrt_up = 0.0, 0.0
-            for position in positions.values():
+            for position in position.values():
                 if "-" == position["notional"][0]:
                     shrt += -float(position["notional"])
                     shrt_up += float(position["unRealizedProfit"])
@@ -169,8 +169,8 @@ class PositionMonitor(BaseMonitor):
             rows1[0]["unrealized_profit"] = long_up
             rows1[1]["unrealized_profit"] = shrt_up
             rows1[2]["unrealized_profit"] = lort_up
-            if 1 <= len(positions_dq):
-                oth_positions = positions_dq[-1]
+            if 1 <= len(position_dq):
+                oth_positions = position_dq[-1]
                 oth_long = oth_shrt = 0.0
                 for position in oth_positions.values():
                     if "-" == position["notional"][0]:
@@ -188,14 +188,14 @@ class PositionMonitor(BaseMonitor):
                 oth_totl = float(oth_account["totalMarginBalance"])
                 totl_pnl1h = totl - oth_totl
                 rows1[3]["pnl1h"] = totl_pnl1h
-            var = await json_load(var_path)
+            var = await json_load(var_json)
             totl_max = max(totl_max, float(var.setdefault("totl_max", "0.0")))
             totl_max = max(totl_max, totl)
             if 0 < totl_max:
                 totl_drawdown_percent = 100 * (totl_max - totl) / totl_max
                 rows1[3]["drawdown_percent"] = totl_drawdown_percent
             for position in sorted(
-                positions.values(),
+                position.values(),
                 key=lambda x: ("-" == x["notional"][0], -float(x["unRealizedProfit"])),
             ):
                 ps = "-" == position["notional"][0]
@@ -218,26 +218,26 @@ class PositionMonitor(BaseMonitor):
                 row["position_amt"] = position_amt
                 row["entry_price"] = entry_price
                 row["mark_price"] = mark_price
-                if 1 <= len(positions_dq) and symbol in positions_dq[-1]:
-                    oth_positions = positions_dq[-1]
+                if 1 <= len(position_dq) and symbol in position_dq[-1]:
+                    oth_positions = position_dq[-1]
                     oth_mark_price = float(oth_positions[symbol]["markPrice"])
                     if 0 < oth_mark_price:
                         change1h_percent = 100 * (mark_price - oth_mark_price) / oth_mark_price
                         row["change1h_percent"] = change1h_percent
-                if 12 <= len(positions_dq) and symbol in positions_dq[-12]:
-                    oth_positions = positions_dq[-12]
+                if 12 <= len(position_dq) and symbol in position_dq[-12]:
+                    oth_positions = position_dq[-12]
                     oth_mark_price = float(oth_positions[symbol]["markPrice"])
                     if 0 < oth_mark_price:
                         change12h_percent = 100 * (mark_price - oth_mark_price) / oth_mark_price
                         row["change12h_percent"] = change12h_percent
                 rows2.append(row)
             account_dq.append(account)
-            positions_dq.append(positions)
+            position_dq.append(position)
             if self.drawdown_percent_threshold <= rows1[3]["drawdown_percent"]:
                 position_card["body"]["elements"].append(at_all_element)
             await self.bot.send_interactive(position_card)
             var["totl_max"] = str(totl_max)
-            await json_dump(var_path, var)
+            await json_dump(var_json, var)
 
 
 class MarketMonitor(BaseMonitor):
@@ -616,7 +616,7 @@ class OrderMonitor(BaseMonitor):
     ) -> None:
         order_card = order_card_factory()
 
-        orders_path = pathlib.Path(r"./orders.csv")
+        orders_csv = pathlib.Path(r"./orders.csv")
         delay = until_next_minute()
         sleep_task = asyncio.create_task(asyncio.sleep(delay))
         while True:
@@ -681,7 +681,7 @@ class OrderMonitor(BaseMonitor):
                 rows.append(row)
             if 0 < len(rows):
                 await self.bot.send_interactive(order_card)
-                await csv_appendrows(orders_path, rows)
+                await csv_appendrows(orders_csv, rows)
 
 
 class ExchangeMonitor(BaseMonitor):
