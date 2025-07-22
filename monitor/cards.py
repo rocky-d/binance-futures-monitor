@@ -11,7 +11,7 @@ __all__ = [
     "exchange_card_factory",
 ]
 
-at_all_element = {
+AT_ALL_ELEMENT = {
     "tag": "markdown",
     "content": "<at id=all></at>",
 }
@@ -508,7 +508,7 @@ EXCHANGE_CARD = {
     },
 }
 
-at_all_element_factory = lambda: copy.deepcopy(at_all_element)
+at_all_element_factory = lambda: copy.deepcopy(AT_ALL_ELEMENT)
 launch_card_factory = lambda: copy.deepcopy(LAUNCH_CARD)
 finish_card_factory = lambda: copy.deepcopy(FINISH_CARD)
 error_card_factory = lambda: copy.deepcopy(ERROR_CARD)
