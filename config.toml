@@ -31,10 +31,12 @@ retention = 128
 [[monitors]]
 cls = "PositionMonitor"
 minute = 0
+drawdown_percent_threshold = 5.0
 
 [[monitors]]
 cls = "PositionMonitor"
 minute = 30
+drawdown_percent_threshold = 5.0
 
 [[monitors]]
 cls = "MarketMonitor"

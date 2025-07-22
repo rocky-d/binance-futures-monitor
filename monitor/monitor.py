@@ -93,6 +93,7 @@ class PositionMonitor(BaseMonitor):
         key: str | None = None,
         secret: str | None = None,
         minute: int = 0,
+        drawdown_percent_threshold: float = 5.0,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -103,10 +104,12 @@ class PositionMonitor(BaseMonitor):
             **kwargs,
         )
         self.minute = minute
+        self.drawdown_percent_threshold = drawdown_percent_threshold
 
     async def monitor_position(
         self,
     ) -> None:
+        at_all_element = at_all_element_factory()
         error_card = error_card_factory()
         position_card = position_card_factory()
 
@@ -144,6 +147,8 @@ class PositionMonitor(BaseMonitor):
             sleep_task = asyncio.create_task(asyncio.sleep(delay))
             position_card["body"]["elements"][1]["rows"] = rows1 = []
             position_card["body"]["elements"][2]["rows"] = rows2 = []
+            while 3 < len(position_card["body"]["elements"]):
+                del position_card["body"]["elements"][-1]
             try:
                 data = await restapi_wrapper(self.client.account)
             except Exception as e:
@@ -245,6 +250,8 @@ class PositionMonitor(BaseMonitor):
                 rows2.append(row)
             account_dq.append(account)
             positions_dq.append(positions)
+            if self.drawdown_percent_threshold <= rows1[3]["drawdown_percent"]:
+                position_card["body"]["elements"].append(at_all_element)
             await self.bot.send_interactive(position_card)
             var["totl_max"] = str(totl_max)
             await dump_var(var)

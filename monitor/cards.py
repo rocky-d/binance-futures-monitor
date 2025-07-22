@@ -1,6 +1,7 @@
 import copy
 
 __all__ = [
+    "at_all_element_factory",
     "launch_card_factory",
     "finish_card_factory",
     "error_card_factory",
@@ -9,6 +10,11 @@ __all__ = [
     "order_card_factory",
     "exchange_card_factory",
 ]
+
+at_all_element = {
+    "tag": "markdown",
+    "content": "<at id=all></at>",
+}
 
 LAUNCH_CARD = {
     "schema": "2.0",
@@ -502,6 +508,7 @@ EXCHANGE_CARD = {
     },
 }
 
+at_all_element_factory = lambda: copy.deepcopy(at_all_element)
 launch_card_factory = lambda: copy.deepcopy(LAUNCH_CARD)
 finish_card_factory = lambda: copy.deepcopy(FINISH_CARD)
 error_card_factory = lambda: copy.deepcopy(ERROR_CARD)
