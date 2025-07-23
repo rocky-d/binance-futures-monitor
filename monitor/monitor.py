@@ -98,15 +98,15 @@ class PositionMonitor(BaseMonitor):
         **kwargs,
     ) -> None:
         super().__init__()
-        self.bot = bot
-        self.client = UMFutures(
+        self._bot = bot
+        self._client = UMFutures(
             key=key,
             secret=secret,
             proxies=proxies,
             **kwargs,
         )
-        self.minute = minute
-        self.drawdown_percent_threshold = drawdown_percent_threshold
+        self._minute = minute
+        self._drawdown_percent_threshold = drawdown_percent_threshold
 
     async def monitor_position(
         self,
@@ -122,30 +122,30 @@ class PositionMonitor(BaseMonitor):
         totl_max = float(var.setdefault("totl_max", "0.0"))
         account_dq = collections.deque(maxlen=1)
         position_dq = collections.deque(maxlen=12)
-        delay = until_next_hour(minute=self.minute)
+        delay = until_next_hour(minute=self._minute)
         sleep_task = asyncio.create_task(asyncio.sleep(delay))
         while True:
             await sleep_task
-            delay = until_next_hour(minute=self.minute)
+            delay = until_next_hour(minute=self._minute)
             sleep_task = asyncio.create_task(asyncio.sleep(delay))
             position_card["body"]["elements"][1]["rows"] = rows1 = []
             position_card["body"]["elements"][2]["rows"] = rows2 = []
             while 3 < len(position_card["body"]["elements"]):
                 del position_card["body"]["elements"][-1]
             try:
-                data = await restapi_wrapper(self.client.account)
+                data = await restapi_wrapper(self._client.account)
             except Exception as e:
                 logger.error(repr(e))
                 error_card["body"]["elements"][1]["text"]["content"] = repr(e)
-                await self.bot.send_interactive(error_card)
+                await self._bot.send_interactive(error_card)
                 continue
             account = data
             try:
-                data = await restapi_wrapper(self.client.get_position_risk)
+                data = await restapi_wrapper(self._client.get_position_risk)
             except Exception as e:
                 logger.error(repr(e))
                 error_card["body"]["elements"][1]["text"]["content"] = repr(e)
-                await self.bot.send_interactive(error_card)
+                await self._bot.send_interactive(error_card)
                 continue
             position = {x["symbol"]: x for x in data}
             rows1.append({"indicator": "多仓"})
@@ -235,9 +235,9 @@ class PositionMonitor(BaseMonitor):
                 rows2.append(row)
             account_dq.append(account)
             position_dq.append(position)
-            if self.drawdown_percent_threshold <= rows1[3]["drawdown_percent"]:
+            if self._drawdown_percent_threshold <= rows1[3]["drawdown_percent"]:
                 position_card["body"]["elements"].append(at_all_element)
-            await self.bot.send_interactive(position_card)
+            await self._bot.send_interactive(position_card)
             var["totl_max"] = str(totl_max)
             await json_dump(var_json, var)
             timestamp = time_ms()
@@ -260,14 +260,14 @@ class MarketMonitor(BaseMonitor):
         **kwargs,
     ) -> None:
         super().__init__()
-        self.bot = bot
-        self.client = UMFutures(
+        self._bot = bot
+        self._client = UMFutures(
             key=key,
             secret=secret,
             proxies=proxies,
             **kwargs,
         )
-        self.wsclient = UMFuturesWebsocketClient(
+        self._wsclient = UMFuturesWebsocketClient(
             on_message=self.on_message,
             on_open=self.on_open,
             on_close=self.on_close,
@@ -277,9 +277,9 @@ class MarketMonitor(BaseMonitor):
             is_combined=False,
             proxies=proxies,
         )
-        self.positions = {}
-        self.speed = speed
-        self.tws = tws = []
+        self._positions = {}
+        self._speed = speed
+        self._tws = tws = []
         for interval, change_percent in sorted(
             (parse_interval(interval), change_percent) for interval, change_percent in params.items()
         ):
@@ -293,8 +293,8 @@ class MarketMonitor(BaseMonitor):
     ) -> None:
         if self.running:
             return
-        self.wsclient.mark_price_all_market(speed=self.speed)
-        stream = f"!markPrice@arr@{self.speed}s" if 1 == self.speed else "!markPrice@arr"
+        self._wsclient.mark_price_all_market(speed=self._speed)
+        stream = f"!markPrice@arr@{self._speed}s" if 1 == self._speed else "!markPrice@arr"
         logger.info(f"SUBSCRIBE: {stream}")
         await super().start()
 
@@ -304,7 +304,7 @@ class MarketMonitor(BaseMonitor):
         if not self.running:
             return
         await super().stop()
-        self.wsclient.stop()
+        self._wsclient.stop()
 
     def on_message(
         self,
@@ -319,7 +319,7 @@ class MarketMonitor(BaseMonitor):
         if isinstance(data, list):
             logger.debug(f"on_message\n{data}")
             mps = {x["s"]: x for x in data}
-            for tw in self.tws:
+            for tw in self._tws:
                 tw.push(mps, time_ms())
         else:
             logger.info(f"on_message\n{data}")
@@ -343,8 +343,8 @@ class MarketMonitor(BaseMonitor):
     ) -> None:
         logger.warning(f"on_error\n{repr(e)}")
         socket_manager.create_ws_connection()
-        self.wsclient.mark_price_all_market(speed=self.speed)
-        stream = f"!markPrice@arr@{self.speed}s" if 1 == self.speed else "!markPrice@arr"
+        self._wsclient.mark_price_all_market(speed=self._speed)
+        stream = f"!markPrice@arr@{self._speed}s" if 1 == self._speed else "!markPrice@arr"
         logger.info(f"SUBSCRIBE: {stream}")
 
     def on_ping(
@@ -371,14 +371,14 @@ class MarketMonitor(BaseMonitor):
             await sleep_task
             sleep_task = asyncio.create_task(asyncio.sleep(delay))
             try:
-                data = await restapi_wrapper(self.client.get_position_risk)
+                data = await restapi_wrapper(self._client.get_position_risk)
             except Exception as e:
                 logger.error(repr(e))
                 error_card["body"]["elements"][1]["text"]["content"] = repr(e)
-                await self.bot.send_interactive(error_card)
+                await self._bot.send_interactive(error_card)
                 continue
-            self.positions.clear()
-            self.positions.update((x["symbol"], x) for x in data)
+            self._positions.clear()
+            self._positions.update((x["symbol"], x) for x in data)
 
     async def monitor_market(
         self,
@@ -386,14 +386,14 @@ class MarketMonitor(BaseMonitor):
         market_card = market_card_factory()
 
         memories = {}
-        delay = self.speed * 2 * 1.0
+        delay = self._speed * 2 * 1.0
         sleep_task = asyncio.create_task(asyncio.sleep(delay))
         while True:
             await sleep_task
             sleep_task = asyncio.create_task(asyncio.sleep(delay))
             market_card["body"]["elements"][1]["rows"] = rows = []
             sorting_map = {}
-            for tw in self.tws:
+            for tw in self._tws:
                 if tw.empty():
                     break
                 mps0, t0 = tw.head()
@@ -415,8 +415,8 @@ class MarketMonitor(BaseMonitor):
                     memories[key] = t
                     row = {}
                     fsymbol = format_symbol(symbol)
-                    if symbol in self.positions:
-                        ps = "-" == self.positions[symbol]["notional"][0]
+                    if symbol in self._positions:
+                        ps = "-" == self._positions[symbol]["notional"][0]
                         ps_str = "<font color='red'>空</font>" if ps else "<font color='green'>多</font>"
                         row["symbol"] = f"{ps_str} {fsymbol}"
                     else:
@@ -425,13 +425,13 @@ class MarketMonitor(BaseMonitor):
                     row["change_percent"] = change_percent
                     rows.append(row)
                     sorting_map[row["symbol"]] = (
-                        0 if symbol in self.positions else 1,
+                        0 if symbol in self._positions else 1,
                         tw.interval,
                         -abs(change_percent),
                     )
             if 0 < len(rows):
                 rows.sort(key=lambda x: sorting_map[x["symbol"]])
-                await self.bot.send_interactive(market_card)
+                await self._bot.send_interactive(market_card)
 
 
 class OrderMonitor(BaseMonitor):
@@ -446,14 +446,14 @@ class OrderMonitor(BaseMonitor):
         **kwargs,
     ) -> None:
         super().__init__()
-        self.bot = bot
-        self.client = UMFutures(
+        self._bot = bot
+        self._client = UMFutures(
             key=key,
             secret=secret,
             proxies=proxies,
             **kwargs,
         )
-        self.wsclient = UMFuturesWebsocketClient(
+        self._wsclient = UMFuturesWebsocketClient(
             on_message=self.on_message,
             on_open=self.on_open,
             on_close=self.on_close,
@@ -463,9 +463,9 @@ class OrderMonitor(BaseMonitor):
             is_combined=False,
             proxies=proxies,
         )
-        self.listenkey = ""
-        self.new_orders_by_id = {}
-        self.nonnew_orders_dq = collections.deque()
+        self._listenkey = ""
+        self._new_orders_by_id = {}
+        self._nonnew_orders_dq = collections.deque()
 
     async def start(
         self,
@@ -473,15 +473,15 @@ class OrderMonitor(BaseMonitor):
         if self.running:
             return
         try:
-            data = await restapi_wrapper(self.client.new_listen_key)
+            data = await restapi_wrapper(self._client.new_listen_key)
         except Exception as e:
             logger.error(repr(e))
             error_card = error_card_factory()
             error_card["body"]["elements"][1]["text"]["content"] = repr(e)
-            await self.bot.send_interactive(error_card)
-        self.listenkey = data["listenKey"]
-        self.wsclient.user_data(self.listenkey)
-        logger.info(f"SUBSCRIBE: {self.listenkey}")
+            await self._bot.send_interactive(error_card)
+        self._listenkey = data["listenKey"]
+        self._wsclient.user_data(self._listenkey)
+        logger.info(f"SUBSCRIBE: {self._listenkey}")
         await super().start()
 
     async def stop(
@@ -490,14 +490,14 @@ class OrderMonitor(BaseMonitor):
         if not self.running:
             return
         await super().stop()
-        self.wsclient.stop()
+        self._wsclient.stop()
         try:
-            data = await restapi_wrapper(self.client.close_listen_key, self.listenkey)
+            data = await restapi_wrapper(self._client.close_listen_key, self._listenkey)
         except Exception as e:
             logger.error(repr(e))
             error_card = error_card_factory()
             error_card["body"]["elements"][1]["text"]["content"] = repr(e)
-            await self.bot.send_interactive(error_card)
+            await self._bot.send_interactive(error_card)
 
     def on_message(
         self,
@@ -512,9 +512,9 @@ class OrderMonitor(BaseMonitor):
         if isinstance(data, dict) and "ORDER_TRADE_UPDATE" == data.get("e"):
             logger.info(f"on_message\n{data}")
             if "NEW" == data["o"]["x"]:
-                self.new_orders_by_id[data["o"]["i"]] = data
+                self._new_orders_by_id[data["o"]["i"]] = data
             else:
-                self.nonnew_orders_dq.append(data)
+                self._nonnew_orders_dq.append(data)
         else:
             logger.info(f"on_message\n{data}")
 
@@ -537,8 +537,8 @@ class OrderMonitor(BaseMonitor):
     ) -> None:
         logger.warning(f"on_error\n{repr(e)}")
         socket_manager.create_ws_connection()
-        self.wsclient.user_data(self.listenkey)
-        logger.info(f"SUBSCRIBE: {self.listenkey}")
+        self._wsclient.user_data(self._listenkey)
+        logger.info(f"SUBSCRIBE: {self._listenkey}")
 
     def on_ping(
         self,
@@ -564,20 +564,20 @@ class OrderMonitor(BaseMonitor):
             await sleep_task
             sleep_task = asyncio.create_task(asyncio.sleep(delay))
             try:
-                data = await restapi_wrapper(self.client.new_listen_key)
+                data = await restapi_wrapper(self._client.new_listen_key)
             except Exception as e:
                 logger.error(repr(e))
                 error_card["body"]["elements"][1]["text"]["content"] = repr(e)
-                await self.bot.send_interactive(error_card)
+                await self._bot.send_interactive(error_card)
                 continue
             new_listenkey = data["listenKey"]
-            if self.listenkey == new_listenkey:
+            if self._listenkey == new_listenkey:
                 continue
-            self.wsclient.user_data(self.listenkey, action="UNSUBSCRIBE")
-            logger.info(f"UNSUBSCRIBE: {self.listenkey}")
-            self.listenkey = new_listenkey
-            self.wsclient.user_data(self.listenkey)
-            logger.info(f"SUBSCRIBE: {self.listenkey}")
+            self._wsclient.user_data(self._listenkey, action="UNSUBSCRIBE")
+            logger.info(f"UNSUBSCRIBE: {self._listenkey}")
+            self._listenkey = new_listenkey
+            self._wsclient.user_data(self._listenkey)
+            logger.info(f"SUBSCRIBE: {self._listenkey}")
 
     async def monitor_order(
         self,
@@ -592,8 +592,8 @@ class OrderMonitor(BaseMonitor):
             delay = until_next_minute()
             sleep_task = asyncio.create_task(asyncio.sleep(delay))
             order_card["body"]["elements"][1]["rows"] = rows = []
-            orders = sorted(self.nonnew_orders_dq, key=lambda x: x["o"]["T"])
-            self.nonnew_orders_dq.clear()
+            orders = sorted(self._nonnew_orders_dq, key=lambda x: x["o"]["T"])
+            self._nonnew_orders_dq.clear()
             for order in orders:
                 timestamp = order["o"]["T"]
                 order_id = order["o"]["i"]
@@ -613,8 +613,8 @@ class OrderMonitor(BaseMonitor):
                 slippage_percent = 100 * slippage / price if 0 < price else 0.0
                 commission = float(order["o"]["n"])
                 commission_percent = 100 * commission / last_notional if 0 < last_notional else 0.0
-                if order_id in self.new_orders_by_id:
-                    delay = timestamp - self.new_orders_by_id[order_id]["o"]["T"]
+                if order_id in self._new_orders_by_id:
+                    delay = timestamp - self._new_orders_by_id[order_id]["o"]["T"]
                     fdelay = format_milliseconds(delay)
                 else:
                     delay = None
@@ -626,8 +626,8 @@ class OrderMonitor(BaseMonitor):
                 fstatus = {"PARTIALLY_FILLED": "PARTIAL"}.get(status, status)
                 order_type = order["o"]["o"]
                 valid_type = order["o"]["f"]
-                if order_id in self.new_orders_by_id and "PARTIALLY_FILLED" != status:
-                    del self.new_orders_by_id[order_id]
+                if order_id in self._new_orders_by_id and "PARTIALLY_FILLED" != status:
+                    del self._new_orders_by_id[order_id]
                 row = {}
                 row["timestamp"] = timestamp
                 row["order_id"] = order_id
@@ -650,7 +650,7 @@ class OrderMonitor(BaseMonitor):
                 row["valid_type"] = valid_type
                 rows.append(row)
             if 0 < len(rows):
-                await self.bot.send_interactive(order_card)
+                await self._bot.send_interactive(order_card)
                 await csv_appendrows(orders_csv, rows)
 
 
@@ -667,15 +667,15 @@ class ExchangeMonitor(BaseMonitor):
         **kwargs,
     ) -> None:
         super().__init__()
-        self.bot = bot
-        self.client = UMFutures(
+        self._bot = bot
+        self._client = UMFutures(
             key=key,
             secret=secret,
             proxies=proxies,
             **kwargs,
         )
-        self.positions = {}
-        self.minute = minute
+        self._positions = {}
+        self._minute = minute
 
     async def monitor_positions(
         self,
@@ -688,14 +688,14 @@ class ExchangeMonitor(BaseMonitor):
             await sleep_task
             sleep_task = asyncio.create_task(asyncio.sleep(delay))
             try:
-                data = await restapi_wrapper(self.client.get_position_risk)
+                data = await restapi_wrapper(self._client.get_position_risk)
             except Exception as e:
                 logger.error(repr(e))
                 error_card["body"]["elements"][1]["text"]["content"] = repr(e)
-                await self.bot.send_interactive(error_card)
+                await self._bot.send_interactive(error_card)
                 continue
-            self.positions.clear()
-            self.positions.update((x["symbol"], x) for x in data)
+            self._positions.clear()
+            self._positions.update((x["symbol"], x) for x in data)
 
     async def monitor_exchange(
         self,
@@ -707,27 +707,27 @@ class ExchangeMonitor(BaseMonitor):
 
         memories = {}
         perpetual_time = 4133404800000
-        delay = until_next_hour(minute=self.minute)
+        delay = until_next_hour(minute=self._minute)
         sleep_task = asyncio.create_task(asyncio.sleep(delay))
         while True:
             await sleep_task
-            delay = until_next_hour(minute=self.minute)
+            delay = until_next_hour(minute=self._minute)
             sleep_task = asyncio.create_task(asyncio.sleep(delay))
             try:
-                data = await restapi_wrapper(self.client.exchange_info)
+                data = await restapi_wrapper(self._client.exchange_info)
             except Exception as e:
                 logger.error(repr(e))
                 error_card["body"]["elements"][1]["text"]["content"] = repr(e)
-                await self.bot.send_interactive(error_card)
+                await self._bot.send_interactive(error_card)
                 continue
             exchange_card["body"]["elements"][1]["rows"] = rows = []
             symbols = data["symbols"]
             try:
-                data = await restapi_wrapper(self.client.time)
+                data = await restapi_wrapper(self._client.time)
             except Exception as e:
                 logger.error(repr(e))
                 error_card["body"]["elements"][1]["text"]["content"] = repr(e)
-                await self.bot.send_interactive(error_card)
+                await self._bot.send_interactive(error_card)
                 continue
             server_time = data["serverTime"]
             for data in symbols:
@@ -746,8 +746,8 @@ class ExchangeMonitor(BaseMonitor):
                 memories[key] = t
                 row = {}
                 fsymbol = format_symbol(symbol)
-                if symbol in self.positions:
-                    ps = "-" == self.positions[symbol]["notional"][0]
+                if symbol in self._positions:
+                    ps = "-" == self._positions[symbol]["notional"][0]
                     ps_str = "<font color='red'>空</font>" if ps else "<font color='green'>多</font>"
                     row["symbol"] = f"{ps_str} {fsymbol}"
                 else:
@@ -757,7 +757,7 @@ class ExchangeMonitor(BaseMonitor):
                 row["delivery_date"] = delivery_date
                 rows.append(row)
             if 0 < len(rows):
-                await self.bot.send_interactive(exchange_card)
+                await self._bot.send_interactive(exchange_card)
 
 
 class MonitorGroup[BaseMonitor]:
@@ -766,7 +766,7 @@ class MonitorGroup[BaseMonitor]:
         self,
         monitors: Iterable[BaseMonitor],
     ) -> None:
-        self.monitors = list(monitors)
+        self._monitors = list(monitors)
 
     async def __aenter__(
         self,
@@ -789,7 +789,7 @@ class MonitorGroup[BaseMonitor]:
         if self.running:
             logger.warning(f"{self} have started")
             return
-        for monitor in self.monitors:
+        for monitor in self._monitors:
             await monitor.start()
         logger.info(f"{self} started")
 
@@ -800,7 +800,7 @@ class MonitorGroup[BaseMonitor]:
         if not self.running:
             logger.warning(f"{self} have stopped")
             return
-        for monitor in reversed(self.monitors):
+        for monitor in reversed(self._monitors):
             await monitor.stop()
         logger.info(f"{self} stopped")
 
@@ -808,4 +808,4 @@ class MonitorGroup[BaseMonitor]:
     def running(
         self,
     ) -> bool:
-        return any(monitor.running for monitor in self.monitors)
+        return any(monitor.running for monitor in self._monitors)
