@@ -135,16 +135,16 @@ class PositionMonitor(BaseMonitor):
             try:
                 data = await restapi_wrapper(self._client.account)
             except Exception as e:
-                logger.error(repr(e))
-                error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+                error_card["body"]["elements"][1]["text"]["content"] = message = repr(e)
+                logger.error(message)
                 await self._bot.send_interactive(error_card)
                 continue
             account = data
             try:
                 data = await restapi_wrapper(self._client.get_position_risk)
             except Exception as e:
-                logger.error(repr(e))
-                error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+                error_card["body"]["elements"][1]["text"]["content"] = message = repr(e)
+                logger.error(message)
                 await self._bot.send_interactive(error_card)
                 continue
             position = {x["symbol"]: x for x in data}
@@ -373,8 +373,8 @@ class MarketMonitor(BaseMonitor):
             try:
                 data = await restapi_wrapper(self._client.get_position_risk)
             except Exception as e:
-                logger.error(repr(e))
-                error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+                error_card["body"]["elements"][1]["text"]["content"] = message = repr(e)
+                logger.error(message)
                 await self._bot.send_interactive(error_card)
                 continue
             self._positions.clear()
@@ -475,9 +475,9 @@ class OrderMonitor(BaseMonitor):
         try:
             data = await restapi_wrapper(self._client.new_listen_key)
         except Exception as e:
-            logger.error(repr(e))
             error_card = error_card_factory()
-            error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+            error_card["body"]["elements"][1]["text"]["content"] = message = repr(e)
+            logger.error(message)
             await self._bot.send_interactive(error_card)
         self._listenkey = data["listenKey"]
         self._wsclient.user_data(self._listenkey)
@@ -494,9 +494,9 @@ class OrderMonitor(BaseMonitor):
         try:
             data = await restapi_wrapper(self._client.close_listen_key, self._listenkey)
         except Exception as e:
-            logger.error(repr(e))
             error_card = error_card_factory()
-            error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+            error_card["body"]["elements"][1]["text"]["content"] = message = repr(e)
+            logger.error(message)
             await self._bot.send_interactive(error_card)
 
     def on_message(
@@ -566,8 +566,8 @@ class OrderMonitor(BaseMonitor):
             try:
                 data = await restapi_wrapper(self._client.new_listen_key)
             except Exception as e:
-                logger.error(repr(e))
-                error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+                error_card["body"]["elements"][1]["text"]["content"] = message = repr(e)
+                logger.error(message)
                 await self._bot.send_interactive(error_card)
                 continue
             new_listenkey = data["listenKey"]
@@ -690,8 +690,8 @@ class ExchangeMonitor(BaseMonitor):
             try:
                 data = await restapi_wrapper(self._client.get_position_risk)
             except Exception as e:
-                logger.error(repr(e))
-                error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+                error_card["body"]["elements"][1]["text"]["content"] = message = repr(e)
+                logger.error(message)
                 await self._bot.send_interactive(error_card)
                 continue
             self._positions.clear()
@@ -716,8 +716,8 @@ class ExchangeMonitor(BaseMonitor):
             try:
                 data = await restapi_wrapper(self._client.exchange_info)
             except Exception as e:
-                logger.error(repr(e))
-                error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+                error_card["body"]["elements"][1]["text"]["content"] = message = repr(e)
+                logger.error(message)
                 await self._bot.send_interactive(error_card)
                 continue
             exchange_card["body"]["elements"][1]["rows"] = rows = []
@@ -725,8 +725,8 @@ class ExchangeMonitor(BaseMonitor):
             try:
                 data = await restapi_wrapper(self._client.time)
             except Exception as e:
-                logger.error(repr(e))
-                error_card["body"]["elements"][1]["text"]["content"] = repr(e)
+                error_card["body"]["elements"][1]["text"]["content"] = message = repr(e)
+                logger.error(message)
                 await self._bot.send_interactive(error_card)
                 continue
             server_time = data["serverTime"]

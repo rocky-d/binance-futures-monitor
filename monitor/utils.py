@@ -158,10 +158,8 @@ async def restapi_wrapper[ReturnType](
     delay = 1.0
     max_tries = 3
     for _ in range(max_tries):
+        logger.info(f"{func.__name__}({", ".join(map(str, args))}, {", ".join(f"{k}={v}" for k, v in kwargs.items())})")
         try:
-            logger.info(
-                f"{func.__name__}({", ".join(map(str, args))}, {", ".join(f"{k}={v}" for k, v in kwargs.items())})"
-            )
             res = await asyncio.to_thread(func, *args, **kwargs)
             break
         except ClientError as e:
@@ -178,7 +176,7 @@ async def restapi_wrapper[ReturnType](
     return res
 
 
-file_locks: dict[pathlib.Path, asyncio.Lock] = {}
+_file_locks: dict[pathlib.Path, asyncio.Lock] = {}
 
 
 async def json_load(
@@ -187,9 +185,9 @@ async def json_load(
     logger.info(f"json_load({str(path)})")
     if not path.is_file():
         return {}
-    if path not in file_locks:
-        file_locks[path] = asyncio.Lock()
-    async with file_locks[path]:
+    if path not in _file_locks:
+        _file_locks[path] = asyncio.Lock()
+    async with _file_locks[path]:
         async with aiofiles.open(path, mode="r", encoding="utf-8") as f:
             s = await f.read()
     var = json.loads(s)
@@ -201,9 +199,9 @@ async def json_dump(
     obj: Any,
 ) -> None:
     logger.info(f"json_dump({str(path)}, {str(obj)[:64]})")
-    if path not in file_locks:
-        file_locks[path] = asyncio.Lock()
-    async with file_locks[path]:
+    if path not in _file_locks:
+        _file_locks[path] = asyncio.Lock()
+    async with _file_locks[path]:
         if not path.is_file():
             await asyncio.to_thread(path.parent.mkdir, parents=True, exist_ok=True)
         s = json.dumps(obj)
@@ -212,7 +210,7 @@ async def json_dump(
             await f.flush()
 
 
-def csv_field(
+def _csv_field(
     s: str,
 ) -> str:
     if "," in s or "\n" in s or '"' in s:
@@ -223,19 +221,19 @@ def csv_field(
 async def csv_append(
     path: pathlib.Path,
     row: dict[str, Any],
-):
+) -> None:
     logger.info(f"csv_append({str(path)}, {str(row)[:64]})")
-    if path not in file_locks:
-        file_locks[path] = asyncio.Lock()
-    async with file_locks[path]:
+    if path not in _file_locks:
+        _file_locks[path] = asyncio.Lock()
+    async with _file_locks[path]:
         keys = list(row.keys())
         if not path.is_file():
             await asyncio.to_thread(path.parent.mkdir, parents=True, exist_ok=True)
             async with aiofiles.open(path, mode="w", encoding="utf-8") as f:
-                await f.write(",".join(map(csv_field, keys)) + "\n")
+                await f.write(",".join(map(_csv_field, keys)) + "\n")
                 await f.flush()
         async with aiofiles.open(path, mode="a", encoding="utf-8") as f:
-            await f.write(",".join(csv_field(str(row[key])) for key in keys) + "\n")
+            await f.write(",".join(_csv_field(str(row[key])) for key in keys) + "\n")
             await f.flush()
 
 
@@ -246,15 +244,15 @@ async def csv_appendrows(
     logger.info(f"csv_appendrows({str(path)}, {str(rows)[:64]})")
     if 0 == len(rows):
         return
-    if path not in file_locks:
-        file_locks[path] = asyncio.Lock()
-    async with file_locks[path]:
+    if path not in _file_locks:
+        _file_locks[path] = asyncio.Lock()
+    async with _file_locks[path]:
         keys = list(rows[0].keys())
         if not path.is_file():
             await asyncio.to_thread(path.parent.mkdir, parents=True, exist_ok=True)
             async with aiofiles.open(path, mode="w", encoding="utf-8") as f:
-                await f.write(",".join(map(csv_field, keys)) + "\n")
+                await f.write(",".join(map(_csv_field, keys)) + "\n")
                 await f.flush()
         async with aiofiles.open(path, mode="a", encoding="utf-8") as f:
-            await f.writelines(",".join(csv_field(str(row[key])) for key in keys) + "\n" for row in rows)
+            await f.writelines(",".join(_csv_field(str(row[key])) for key in keys) + "\n" for row in rows)
             await f.flush()
