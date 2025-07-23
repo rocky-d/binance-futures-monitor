@@ -404,9 +404,10 @@ class MarketMonitor(BaseMonitor):
                     if abs(change_percent) < tw.change_percent:
                         continue
                     t = time_ms()
-                    if t - memories.get((symbol, tw.interval), -math.inf) < tw.interval:
+                    key = symbol, tw.interval
+                    if t - memories.get(key, -math.inf) < tw.interval:
                         continue
-                    memories[symbol, tw.interval] = t
+                    memories[key] = t
                     row = {}
                     fsymbol = format_symbol(symbol)
                     if symbol in self.positions:
@@ -728,9 +729,10 @@ class ExchangeMonitor(BaseMonitor):
                 if not (server_time < delivery_date < perpetual_time or server_time < onboard_date < perpetual_time):
                     continue
                 t = time_ms()
-                if symbol in memories:
+                key = symbol, status, onboard_date, delivery_date
+                if key in memories:
                     continue
-                memories[symbol] = t
+                memories[key] = t
                 row = {}
                 fsymbol = format_symbol(symbol)
                 if symbol in self.positions:
