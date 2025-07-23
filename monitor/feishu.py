@@ -108,7 +108,7 @@ class Bot(BaseBot):
         delay = self._delay
         while True:
             payload = await self._que.get()
-            logger.info(f"{payload = }")
+            logger.info(f"payload: {str(payload)[:256]}")
             max_tries = 3
             for _ in range(max_tries):
                 await asyncio.sleep(delay)
@@ -198,7 +198,7 @@ class BotNowait(BaseBot):
             if self._que.empty():
                 continue
             payload = self._que.get_nowait()
-            logger.info(f"{payload = }")
+            logger.info(f"payload: {str(payload)[:256]}")
             max_tries = 3
             for _ in range(max_tries):
                 await asyncio.sleep(delay)
