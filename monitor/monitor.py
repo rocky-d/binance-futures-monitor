@@ -93,6 +93,7 @@ class PositionMonitor(BaseMonitor):
         *,
         key: str | None = None,
         secret: str | None = None,
+        proxies: dict[str, str] | None = None,
         minute: int = 0,
         drawdown_percent_threshold: float = 5.0,
         **kwargs,
@@ -102,6 +103,7 @@ class PositionMonitor(BaseMonitor):
         self.client = UMFutures(
             key=key,
             secret=secret,
+            proxies=proxies,
             **kwargs,
         )
         self.minute = minute
@@ -252,6 +254,7 @@ class MarketMonitor(BaseMonitor):
         *,
         key: str | None = None,
         secret: str | None = None,
+        proxies: dict[str, str] | None = None,
         params: dict[str, float] = {},
         speed: int = 1,
         maxm: int = 256,
@@ -262,6 +265,7 @@ class MarketMonitor(BaseMonitor):
         self.client = UMFutures(
             key=key,
             secret=secret,
+            proxies=proxies,
             **kwargs,
         )
         self.wsclient = UMFuturesWebsocketClient(
@@ -271,6 +275,8 @@ class MarketMonitor(BaseMonitor):
             on_error=self.on_error,
             on_ping=self.on_ping,
             on_pong=self.on_pong,
+            is_combined=False,
+            proxies=proxies,
         )
         self.positions = {}
         self.speed = speed
@@ -437,6 +443,7 @@ class OrderMonitor(BaseMonitor):
         *,
         key: str | None = None,
         secret: str | None = None,
+        proxies: dict[str, str] | None = None,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -444,6 +451,7 @@ class OrderMonitor(BaseMonitor):
         self.client = UMFutures(
             key=key,
             secret=secret,
+            proxies=proxies,
             **kwargs,
         )
         self.wsclient = UMFuturesWebsocketClient(
@@ -453,6 +461,8 @@ class OrderMonitor(BaseMonitor):
             on_error=self.on_error,
             on_ping=self.on_ping,
             on_pong=self.on_pong,
+            is_combined=False,
+            proxies=proxies,
         )
         self.listenkey = ""
         self.new_orders_by_id = {}
@@ -653,6 +663,7 @@ class ExchangeMonitor(BaseMonitor):
         *,
         key: str | None = None,
         secret: str | None = None,
+        proxies: dict[str, str] | None = None,
         minute: int = 0,
         **kwargs,
     ) -> None:
@@ -661,6 +672,7 @@ class ExchangeMonitor(BaseMonitor):
         self.client = UMFutures(
             key=key,
             secret=secret,
+            proxies=proxies,
             **kwargs,
         )
         self.positions = {}
