@@ -159,7 +159,7 @@ async def restapi_wrapper[ReturnType](
     max_tries = 3
     for _ in range(max_tries):
         logger.info(
-            f"{func.__name__}({", ".join(map(str, args))}{"" if 0 == len(args) or 0 == len(kwargs) else ", "}{", ".join(f"{k}={v}" for k, v in kwargs.items())})"
+            f"{func.__name__}({", ".join(map(repr, args))}{"" if 0 == len(args) or 0 == len(kwargs) else ", "}{", ".join(f"{k}={repr(v)}" for k, v in kwargs.items())})"
         )
         try:
             res = await asyncio.to_thread(func, *args, **kwargs)
@@ -184,7 +184,7 @@ _file_locks: dict[pathlib.Path, asyncio.Lock] = {}
 async def json_load(
     path: pathlib.Path,
 ) -> Any:
-    logger.info(f"json_load({str(path)})")
+    logger.info(f"json_load({repr(path)})")
     if not path.is_file():
         return {}
     if path not in _file_locks:
@@ -200,7 +200,7 @@ async def json_dump(
     path: pathlib.Path,
     obj: Any,
 ) -> None:
-    logger.info(f"json_dump({str(path)}, {str(obj)[:64]})")
+    logger.info(f"json_dump({repr(path)}, {repr(obj)[:64]})")
     if path not in _file_locks:
         _file_locks[path] = asyncio.Lock()
     async with _file_locks[path]:
@@ -224,7 +224,7 @@ async def csv_append(
     path: pathlib.Path,
     row: dict[str, Any],
 ) -> None:
-    logger.info(f"csv_append({str(path)}, {str(row)[:64]})")
+    logger.info(f"csv_append({repr(path)}, {repr(row)[:64]})")
     if path not in _file_locks:
         _file_locks[path] = asyncio.Lock()
     async with _file_locks[path]:
@@ -243,7 +243,7 @@ async def csv_appendrows(
     path: pathlib.Path,
     rows: list[dict[str, Any]],
 ) -> None:
-    logger.info(f"csv_appendrows({str(path)}, {str(rows)[:64]})")
+    logger.info(f"csv_appendrows({repr(path)}, {repr(rows)[:64]})")
     if 0 == len(rows):
         return
     if path not in _file_locks:
