@@ -453,9 +453,9 @@ class OrderMonitor(BaseMonitor):
             on_ping=self.on_ping,
             on_pong=self.on_pong,
         )
-        self.listenkey = "xxx"
-        self.order_tickers = {}
-        self.orders = collections.deque()
+        self.listenkey = ""
+        self.new_orders_by_id = {}
+        self.nonnew_orders_dq = collections.deque()
 
     async def start(
         self,
@@ -502,11 +502,9 @@ class OrderMonitor(BaseMonitor):
         if isinstance(data, dict) and "ORDER_TRADE_UPDATE" == data.get("e"):
             logger.info(f"on_message\n{data}")
             if "NEW" == data["o"]["x"]:
-                timestamp = data["o"]["T"]
-                self.order_tickers[data["o"]["i"]] = {}
-                self.order_tickers[data["o"]["i"]]["timestamp"] = timestamp
+                self.new_orders_by_id[data["o"]["i"]] = data
             else:
-                self.orders.append(data)
+                self.nonnew_orders_dq.append(data)
         else:
             logger.info(f"on_message\n{data}")
 
@@ -584,8 +582,8 @@ class OrderMonitor(BaseMonitor):
             delay = until_next_minute()
             sleep_task = asyncio.create_task(asyncio.sleep(delay))
             order_card["body"]["elements"][1]["rows"] = rows = []
-            orders = sorted(self.orders, key=lambda x: x["o"]["T"])
-            self.orders.clear()
+            orders = sorted(self.nonnew_orders_dq, key=lambda x: x["o"]["T"])
+            self.nonnew_orders_dq.clear()
             for order in orders:
                 timestamp = order["o"]["T"]
                 order_id = order["o"]["i"]
@@ -605,8 +603,8 @@ class OrderMonitor(BaseMonitor):
                 slippage_percent = 100 * slippage / price if 0 < price else 0.0
                 commission = float(order["o"]["n"])
                 commission_percent = 100 * commission / last_notional if 0 < last_notional else 0.0
-                if order_id in self.order_tickers:
-                    delay = timestamp - self.order_tickers[order_id]["timestamp"]
+                if order_id in self.new_orders_by_id:
+                    delay = timestamp - self.new_orders_by_id[order_id]["o"]["T"]
                     fdelay = format_milliseconds(delay)
                 else:
                     delay = None
@@ -617,8 +615,8 @@ class OrderMonitor(BaseMonitor):
                 status = order["o"]["X"]
                 order_type = order["o"]["o"]
                 valid_type = order["o"]["f"]
-                if order_id in self.order_tickers and "PARTIALLY_FILLED" != status:
-                    del self.order_tickers[order_id]
+                if order_id in self.new_orders_by_id and "PARTIALLY_FILLED" != status:
+                    del self.new_orders_by_id[order_id]
                 row = {}
                 row["timestamp"] = timestamp
                 row["order_id"] = order_id
