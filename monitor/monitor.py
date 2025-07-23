@@ -479,9 +479,10 @@ class OrderMonitor(BaseMonitor):
             error_card["body"]["elements"][1]["text"]["content"] = message = repr(e)
             logger.error(message)
             await self._bot.send_interactive(error_card)
-        self._listenkey = data["listenKey"]
-        self._wsclient.user_data(self._listenkey)
-        logger.info(f"SUBSCRIBE: {self._listenkey}")
+        else:
+            self._listenkey = data["listenKey"]
+            self._wsclient.user_data(self._listenkey)
+            logger.info(f"SUBSCRIBE: {self._listenkey}")
         await super().start()
 
     async def stop(
