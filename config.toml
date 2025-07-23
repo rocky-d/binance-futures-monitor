@@ -46,7 +46,6 @@ maxm = 256
 
 [[monitors]]
 cls = "OrderMonitor"
-bookticker_dqs_maxlen = 100
 
 [[monitors]]
 cls = "ExchangeMonitor"
