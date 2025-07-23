@@ -365,7 +365,7 @@ class MarketMonitor(BaseMonitor):
     ) -> None:
         error_card = error_card_factory()
 
-        delay = 10 * 60 * 1.0
+        delay = 60 * 1.0
         sleep_task = asyncio.create_task(asyncio.sleep(0.0))
         while True:
             await sleep_task
@@ -386,7 +386,7 @@ class MarketMonitor(BaseMonitor):
         market_card = market_card_factory()
 
         memories = {}
-        delay = 10 * 1.0
+        delay = self.speed * 2 * 1.0
         sleep_task = asyncio.create_task(asyncio.sleep(delay))
         while True:
             await sleep_task
@@ -558,7 +558,7 @@ class OrderMonitor(BaseMonitor):
     ) -> None:
         error_card = error_card_factory()
 
-        delay = 10 * 60 * 1.0
+        delay = 60 * 1.0
         sleep_task = asyncio.create_task(asyncio.sleep(delay))
         while True:
             await sleep_task
