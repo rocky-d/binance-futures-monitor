@@ -436,7 +436,6 @@ class OrderMonitor(BaseMonitor):
         *,
         key: str | None = None,
         secret: str | None = None,
-        bookticker_dqs_maxlen: int = 100,
         **kwargs,
     ) -> None:
         super().__init__()
@@ -454,9 +453,7 @@ class OrderMonitor(BaseMonitor):
             on_ping=self.on_ping,
             on_pong=self.on_pong,
         )
-        self.bookticker_dqs_maxlen = bookticker_dqs_maxlen
         self.listenkey = "xxx"
-        self.bookticker_dqs = {}
         self.order_tickers = {}
         self.orders = collections.deque()
 
@@ -505,27 +502,11 @@ class OrderMonitor(BaseMonitor):
         if isinstance(data, dict) and "ORDER_TRADE_UPDATE" == data.get("e"):
             logger.info(f"on_message\n{data}")
             if "NEW" == data["o"]["x"]:
-                symbol = data["o"]["s"]
                 timestamp = data["o"]["T"]
                 self.order_tickers[data["o"]["i"]] = {}
                 self.order_tickers[data["o"]["i"]]["timestamp"] = timestamp
-                if symbol not in self.bookticker_dqs:
-                    return
-                bookticker_dq = self.bookticker_dqs[symbol]
-                idx = bisect.bisect_right(bookticker_dq, timestamp, key=lambda x: x["T"]) - 1
-                logger.debug(f"idx: {idx}")
-                if idx < 0:
-                    logger.warning(f"No bookTicker for {symbol} at {timestamp}")
-                    return
-                bookticker = bookticker_dq[idx]
-                self.order_tickers[data["o"]["i"]]["bookticker"] = bookticker
             else:
                 self.orders.append(data)
-        elif isinstance(data, dict) and "bookTicker" == data.get("e"):
-            symbol = data["s"]
-            if symbol not in self.bookticker_dqs:
-                self.bookticker_dqs[symbol] = collections.deque(maxlen=self.bookticker_dqs_maxlen)
-            self.bookticker_dqs[symbol].append(data)
         else:
             logger.info(f"on_message\n{data}")
 
@@ -550,14 +531,6 @@ class OrderMonitor(BaseMonitor):
         socket_manager.create_ws_connection()
         self.wsclient.user_data(self.listenkey)
         logger.info(f"SUBSCRIBE: {self.listenkey}")
-
-        async def subscribe_booktickers():
-            for symbol in self.bookticker_dqs:
-                await asyncio.sleep(0.2)
-                self.wsclient.book_ticker(symbol)
-                logger.info(f"SUBSCRIBE: {symbol.lower()}@bookTicker")
-
-        asyncio.create_task(subscribe_booktickers())
 
     def on_ping(
         self,
@@ -597,34 +570,6 @@ class OrderMonitor(BaseMonitor):
             self.listenkey = new_listenkey
             self.wsclient.user_data(self.listenkey)
             logger.info(f"SUBSCRIBE: {self.listenkey}")
-
-    async def monitor_booktickers(
-        self,
-    ) -> None:
-        error_card = error_card_factory()
-
-        delay = 60 * 60 * 1.0
-        sleep_task = asyncio.create_task(asyncio.sleep(0.0))
-        while True:
-            await sleep_task
-            sleep_task = asyncio.create_task(asyncio.sleep(delay))
-            try:
-                data = await restapi_wrapper(self.client.book_ticker)
-            except Exception as e:
-                logger.error(repr(e))
-                error_card["body"]["elements"][1]["text"]["content"] = repr(e)
-                await self.bot.send_interactive(error_card)
-                continue
-            symbols = {x["symbol"] for x in data}
-            for symbol in self.bookticker_dqs.keys() - symbols:
-                await asyncio.sleep(0.2)
-                self.wsclient.book_ticker(symbol, action="UNSUBSCRIBE")
-                logger.info(f"UNSUBSCRIBE: {symbol.lower()}@bookTicker")
-                del self.bookticker_dqs[symbol]
-            for symbol in symbols - self.bookticker_dqs.keys():
-                await asyncio.sleep(0.2)
-                self.wsclient.book_ticker(symbol)
-                logger.info(f"SUBSCRIBE: {symbol.lower()}@bookTicker")
 
     async def monitor_order(
         self,
