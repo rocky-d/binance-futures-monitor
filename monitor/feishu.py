@@ -118,16 +118,16 @@ class Bot(BaseBot):
                 headers = resp.headers
                 text = await resp.text()
                 if not resp.ok:
-                    logger.warning(f"{status} {reason}\n{text}")
+                    logger.warning(f"{status} {reason} {text}")
                     continue
                 data = await resp.json()
                 if not isinstance(data, dict) or 0 != data.get("code"):
-                    logger.warning(f"{status} {reason}\n{text}")
+                    logger.warning(f"{status} {reason} {text}")
                     continue
-                logger.success(f"{status} {reason}\n{text}")
+                logger.success(f"{status} {reason} {text}")
                 break
             else:
-                logger.error(f"{status} {reason}\n{headers}\n{text}")
+                logger.error(f"{status} {reason} {text}\n{headers}")
             self._que.task_done()
 
     async def send_text(
@@ -208,16 +208,16 @@ class BotNowait(BaseBot):
                 headers = resp.headers
                 text = await resp.text()
                 if not resp.ok:
-                    logger.warning(f"{status} {reason}\n{text}")
+                    logger.warning(f"{status} {reason} {text}")
                     continue
                 data = await resp.json()
                 if not isinstance(data, dict) or 0 != data.get("code"):
-                    logger.warning(f"{status} {reason}\n{text}")
+                    logger.warning(f"{status} {reason} {text}")
                     continue
-                logger.success(f"{status} {reason}\n{text}")
+                logger.success(f"{status} {reason} {text}")
                 break
             else:
-                logger.error(f"{status} {reason}\n{headers}\n{text}")
+                logger.error(f"{status} {reason} {text}\n{headers}")
             self._que.task_done()
 
     def send_text(
