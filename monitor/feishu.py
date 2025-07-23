@@ -89,9 +89,8 @@ class Bot(BaseBot):
     ) -> None:
         if self.running:
             return
-        res = await super().start()
+        await super().start()
         await self.send_interactive(launch_card_factory())
-        return res
 
     async def stop(
         self,
@@ -108,7 +107,7 @@ class Bot(BaseBot):
         delay = self._delay
         while True:
             payload = await self._que.get()
-            logger.info(f"payload: {str(payload)[:256]}")
+            logger.info(f"payload: {repr(payload)[:256]}")
             max_tries = 3
             for _ in range(max_tries):
                 await asyncio.sleep(delay)
@@ -176,9 +175,8 @@ class BotNowait(BaseBot):
     ) -> None:
         if self.running:
             return
-        res = await super().start()
+        await super().start()
         self.send_interactive(launch_card_factory())
-        return res
 
     async def stop(
         self,
@@ -198,7 +196,7 @@ class BotNowait(BaseBot):
             if self._que.empty():
                 continue
             payload = self._que.get_nowait()
-            logger.info(f"payload: {str(payload)[:256]}")
+            logger.info(f"payload: {repr(payload)[:256]}")
             max_tries = 3
             for _ in range(max_tries):
                 await asyncio.sleep(delay)
