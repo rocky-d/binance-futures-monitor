@@ -1,5 +1,4 @@
 import asyncio
-import bisect
 import collections
 import inspect
 import json
@@ -195,8 +194,8 @@ class PositionMonitor(BaseMonitor):
             totl_max = max(totl_max, float(var.setdefault("totl_max", "0.0")))
             totl_max = max(totl_max, totl)
             if 0 < totl_max:
-                totl_drawdown_percent = 100 * (totl_max - totl) / totl_max
-                rows1[3]["drawdown_percent"] = totl_drawdown_percent
+                drawdown_percent = 100 * (totl_max - totl) / totl_max
+                rows1[3]["drawdown_percent"] = drawdown_percent
             for pos in sorted(
                 position.values(),
                 key=lambda x: ("-" == x["notional"][0], -float(x["unRealizedProfit"])),
