@@ -114,9 +114,9 @@ class PositionMonitor(BaseMonitor):
         error_card = error_card_factory()
         position_card = position_card_factory()
 
-        position1_csv = pathlib.Path(r"./position1.csv")
-        position2_csv = pathlib.Path(r"./position2.csv")
-        var_json = pathlib.Path(r"./var.json")
+        position1_csv = pathlib.Path(r"./data/position1.csv")
+        position2_csv = pathlib.Path(r"./data/position2.csv")
+        var_json = pathlib.Path(r"./data/var.json")
         var = await json_load(var_json)
         totl_max = float(var.setdefault("totl_max", "0.0"))
         account_dq = collections.deque(maxlen=1)
@@ -575,7 +575,7 @@ class OrderMonitor(BaseMonitor):
     ) -> None:
         order_card = order_card_factory()
 
-        orders_csv = pathlib.Path(r"./orders.csv")
+        orders_csv = pathlib.Path(r"./data/orders.csv")
         delay = until_next_minute()
         sleep_task = asyncio.create_task(asyncio.sleep(delay))
         while True:
