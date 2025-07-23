@@ -158,7 +158,9 @@ async def restapi_wrapper[ReturnType](
     delay = 1.0
     max_tries = 3
     for _ in range(max_tries):
-        logger.info(f"{func.__name__}({", ".join(map(str, args))}, {", ".join(f"{k}={v}" for k, v in kwargs.items())})")
+        logger.info(
+            f"{func.__name__}({", ".join(map(str, args))}{"" if 0 == len(args) or 0 == len(kwargs) else ", "}{", ".join(f"{k}={v}" for k, v in kwargs.items())})"
+        )
         try:
             res = await asyncio.to_thread(func, *args, **kwargs)
             break
