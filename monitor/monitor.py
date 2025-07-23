@@ -314,15 +314,15 @@ class MarketMonitor(BaseMonitor):
         try:
             data = json.loads(data)
         except json.JSONDecodeError as e:
-            logger.warning(f"on_message\n{repr(e)}\n{data}")
+            logger.warning(f"on_message\n{repr(e)}\n{repr(data)}")
             return
         if isinstance(data, list):
-            logger.debug(f"on_message\n{data}")
+            logger.debug(f"on_message\n{repr(data)}")
             mps = {x["s"]: x for x in data}
             for tw in self._tws:
                 tw.push(mps, time_ms())
         else:
-            logger.info(f"on_message\n{data}")
+            logger.info(f"on_message\n{repr(data)}")
 
     def on_open(
         self,
@@ -352,7 +352,7 @@ class MarketMonitor(BaseMonitor):
         socket_manager: BinanceSocketManager,
         data: bytes | str,
     ) -> None:
-        logger.debug(f"on_ping\n{data}")
+        logger.debug(f"on_ping\n{repr(data)}")
 
     def on_pong(
         self,
@@ -508,16 +508,16 @@ class OrderMonitor(BaseMonitor):
         try:
             data = json.loads(data)
         except json.JSONDecodeError as e:
-            logger.warning(f"on_message\n{repr(e)}\n{data}")
+            logger.warning(f"on_message\n{repr(e)}\n{repr(data)}")
             return
         if isinstance(data, dict) and "ORDER_TRADE_UPDATE" == data.get("e"):
-            logger.info(f"on_message\n{data}")
+            logger.info(f"on_message\n{repr(data)}")
             if "NEW" == data["o"]["x"]:
                 self._new_orders_by_id[data["o"]["i"]] = data
             else:
                 self._nonnew_orders_dq.append(data)
         else:
-            logger.info(f"on_message\n{data}")
+            logger.info(f"on_message\n{repr(data)}")
 
     def on_open(
         self,
@@ -546,7 +546,7 @@ class OrderMonitor(BaseMonitor):
         socket_manager: BinanceSocketManager,
         data: bytes | str,
     ) -> None:
-        logger.debug(f"on_ping\n{data}")
+        logger.debug(f"on_ping\n{repr(data)}")
 
     def on_pong(
         self,
