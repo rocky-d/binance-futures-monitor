@@ -162,8 +162,7 @@ async def restapi_wrapper[ReturnType](
             f"{func.__name__}({", ".join(map(repr, args))}{"" if 0 == len(args) or 0 == len(kwargs) else ", "}{", ".join(f"{k}={repr(v)}" for k, v in kwargs.items())})"
         )
         try:
-            res = await asyncio.to_thread(func, *args, **kwargs)
-            break
+            data = await asyncio.to_thread(func, *args, **kwargs)
         except ClientError as e:
             excs.append(e)
         except ServerError as e:
@@ -172,10 +171,13 @@ async def restapi_wrapper[ReturnType](
             excs.append(e)
         except Exception as e:
             excs.append(e)
+        else:
+            logger.success(repr(data)[:64])
+            break
         await asyncio.sleep(delay)
     else:
         raise ExceptionGroup(f"{max_tries=}", excs)
-    return res
+    return data
 
 
 _file_locks: dict[pathlib.Path, asyncio.Lock] = {}
