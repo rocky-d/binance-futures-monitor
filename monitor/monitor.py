@@ -688,8 +688,10 @@ class ExchangeMonitor(BaseMonitor):
     async def monitor_exchange(
         self,
     ) -> None:
+        at_all_element = at_all_element_factory()
         error_card = error_card_factory()
         exchange_card = exchange_card_factory()
+        exchange_card["body"]["elements"].append(at_all_element)
 
         memories = {}
         perpetual_time = 4133404800000

@@ -91,6 +91,7 @@ ERROR_CARD = {
                     "content": "",
                 },
             },
+            AT_ALL_ELEMENT,
         ],
     },
 }
