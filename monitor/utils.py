@@ -8,6 +8,7 @@ import requests
 import time
 from typing import Any, Callable
 from binance.error import ClientError, ServerError
+from loguru import logger
 
 __all__ = [
     "format_symbol",
@@ -158,6 +159,9 @@ async def restapi_wrapper[ReturnType](
     max_tries = 3
     for _ in range(max_tries):
         try:
+            logger.info(
+                f"{func.__name__}({", ".join(map(str, args))}, {", ".join(f"{k}={v}" for k, v in kwargs.items())})"
+            )
             res = await asyncio.to_thread(func, *args, **kwargs)
             break
         except ClientError as e:
@@ -180,6 +184,7 @@ file_locks: dict[pathlib.Path, asyncio.Lock] = {}
 async def json_load(
     path: pathlib.Path,
 ) -> Any:
+    logger.info(f"json_load({str(path)})")
     if not path.is_file():
         return {}
     if path not in file_locks:
@@ -195,6 +200,7 @@ async def json_dump(
     path: pathlib.Path,
     obj: Any,
 ) -> None:
+    logger.info(f"json_dump({str(path)}, {str(obj)[:64]})")
     if path not in file_locks:
         file_locks[path] = asyncio.Lock()
     async with file_locks[path]:
@@ -218,6 +224,7 @@ async def csv_append(
     path: pathlib.Path,
     row: dict[str, Any],
 ):
+    logger.info(f"csv_append({str(path)}, {str(row)[:64]})")
     if path not in file_locks:
         file_locks[path] = asyncio.Lock()
     async with file_locks[path]:
@@ -236,6 +243,7 @@ async def csv_appendrows(
     path: pathlib.Path,
     rows: list[dict[str, Any]],
 ) -> None:
+    logger.info(f"csv_appendrows({str(path)}, {str(rows)[:64]})")
     if 0 == len(rows):
         return
     if path not in file_locks:
