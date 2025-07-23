@@ -117,7 +117,7 @@ POSITION_CARD = {
             },
             {
                 "tag": "table",
-                "freeze_first_column": True,
+                "freeze_first_column": False,
                 "page_size": 10,
                 "row_height": "auto",
                 "row_max_height": "60px",
@@ -174,7 +174,7 @@ POSITION_CARD = {
             },
             {
                 "tag": "table",
-                "freeze_first_column": True,
+                "freeze_first_column": False,
                 "page_size": 10,
                 "row_height": "auto",
                 "row_max_height": "60px",
@@ -185,7 +185,7 @@ POSITION_CARD = {
                         "name": "position",
                         "display_name": "持仓",
                         "data_type": "markdown",
-                        "width": "150px",
+                        "width": "165px",
                     },
                     {
                         "name": "position_amt",
@@ -305,7 +305,7 @@ MARKET_CARD = {
             },
             {
                 "tag": "table",
-                "freeze_first_column": True,
+                "freeze_first_column": False,
                 "page_size": 10,
                 "row_height": "auto",
                 "row_max_height": "60px",
@@ -316,13 +316,13 @@ MARKET_CARD = {
                         "name": "symbol",
                         "display_name": "交易对",
                         "data_type": "markdown",
-                        "width": "150px",
+                        "width": "160px",
                     },
                     {
                         "name": "timedelta",
                         "display_name": "时段",
                         "data_type": "markdown",
-                        "width": "120px",
+                        "width": "80px",
                     },
                     {
                         "name": "change_percent",
@@ -332,7 +332,7 @@ MARKET_CARD = {
                             "precision": 2,
                             "separator": False,
                         },
-                        "width": "120px",
+                        "width": "80px",
                     },
                 ],
             },
@@ -362,6 +362,7 @@ ORDER_CARD = {
             },
             {
                 "tag": "table",
+                "freeze_first_column": False,
                 "page_size": 10,
                 "row_height": "auto",
                 "row_max_height": "60px",
@@ -372,8 +373,8 @@ ORDER_CARD = {
                         "name": "timestamp",
                         "display_name": "时间",
                         "data_type": "date",
-                        "date_format": "YYYY-MM-DD HH:mm:ss",
-                        "width": "160px",
+                        "date_format": "YY-MM-DD HH:mm:ss",
+                        "width": "140px",
                     },
                     {
                         "name": "order_id",
@@ -383,7 +384,7 @@ ORDER_CARD = {
                             "precision": 0,
                             "separator": False,
                         },
-                        "width": "100px",
+                        "width": "120px",
                     },
                     {
                         "name": "side",
@@ -415,7 +416,7 @@ ORDER_CARD = {
                             "precision": 5,
                             "separator": False,
                         },
-                        "width": "120px",
+                        "width": "80px",
                     },
                     {
                         "name": "last_notional",
@@ -435,7 +436,7 @@ ORDER_CARD = {
                             "precision": 5,
                             "separator": False,
                         },
-                        "width": "120px",
+                        "width": "80px",
                     },
                     {
                         "name": "slippage_percent",
@@ -455,7 +456,7 @@ ORDER_CARD = {
                             "precision": 5,
                             "separator": False,
                         },
-                        "width": "120px",
+                        "width": "100px",
                     },
                     {
                         "name": "commission_percent",
@@ -465,7 +466,7 @@ ORDER_CARD = {
                             "precision": 2,
                             "separator": False,
                         },
-                        "width": "80px",
+                        "width": "100px",
                     },
                     {
                         "name": "realized_profit",
@@ -475,7 +476,7 @@ ORDER_CARD = {
                             "precision": 5,
                             "separator": False,
                         },
-                        "width": "120px",
+                        "width": "100px",
                     },
                     {
                         "name": "filled_percent",
@@ -485,7 +486,7 @@ ORDER_CARD = {
                             "precision": 2,
                             "separator": False,
                         },
-                        "width": "80px",
+                        "width": "100px",
                     },
                     {
                         "name": "delay",
@@ -551,7 +552,7 @@ EXCHANGE_CARD = {
             },
             {
                 "tag": "table",
-                "freeze_first_column": True,
+                "freeze_first_column": False,
                 "page_size": 10,
                 "row_height": "auto",
                 "row_max_height": "60px",
@@ -568,7 +569,7 @@ EXCHANGE_CARD = {
                         "name": "status",
                         "display_name": "当前状态",
                         "data_type": "markdown",
-                        "width": "120px",
+                        "width": "100px",
                     },
                     {
                         "name": "onboard_date",

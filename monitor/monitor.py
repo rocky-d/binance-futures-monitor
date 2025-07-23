@@ -613,6 +613,7 @@ class OrderMonitor(BaseMonitor):
                 role = "MAKER" if is_maker else "TAKER"
                 task = order["o"]["x"]
                 status = order["o"]["X"]
+                fstatus = {"PARTIALLY_FILLED": "PARTIAL"}.get(status, status)
                 order_type = order["o"]["o"]
                 valid_type = order["o"]["f"]
                 if order_id in self.new_orders_by_id and "PARTIALLY_FILLED" != status:
@@ -634,7 +635,7 @@ class OrderMonitor(BaseMonitor):
                 row["delay"] = fdelay
                 row["role"] = role
                 row["task"] = task
-                row["status"] = status
+                row["status"] = fstatus
                 row["order_type"] = order_type
                 row["valid_type"] = valid_type
                 rows.append(row)
