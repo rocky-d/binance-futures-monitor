@@ -661,8 +661,7 @@ class OrderMonitor(BaseMonitor):
                 commission = float(order["o"]["n"])
                 commission_percent = 100 * commission / last_notional if 0 < last_notional else 0.0
                 if order_id in self.order_tickers:
-                    order_ticker = self.order_tickers.pop(order_id)
-                    delay = timestamp - order_ticker["timestamp"]
+                    delay = timestamp - self.order_tickers[order_id]["timestamp"]
                     fdelay = format_milliseconds(delay)
                 else:
                     delay = None
@@ -673,6 +672,8 @@ class OrderMonitor(BaseMonitor):
                 status = order["o"]["X"]
                 order_type = order["o"]["o"]
                 valid_type = order["o"]["f"]
+                if order_id in self.order_tickers and "PARTIALLY_FILLED" != status:
+                    del self.order_tickers[order_id]
                 row = {}
                 row["timestamp"] = timestamp
                 row["order_id"] = order_id
