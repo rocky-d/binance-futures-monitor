@@ -1,6 +1,5 @@
 import asyncio
 import collections
-import inspect
 import json
 import math
 import pathlib
@@ -59,7 +58,7 @@ class BaseMonitor:
             if not name.startswith("monitor"):
                 continue
             attr = getattr(self, name)
-            if not inspect.iscoroutinefunction(attr):
+            if not asyncio.iscoroutinefunction(attr):
                 continue
             coroutines.append(attr())
         self._tasks.extend(map(asyncio.create_task, coroutines))
