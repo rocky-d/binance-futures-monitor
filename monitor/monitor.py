@@ -124,11 +124,12 @@ class PositionMonitor(BaseMonitor):
             await sleep_task
             delay = until_next_hour(minute=self._minute)
             sleep_task = asyncio.create_task(asyncio.sleep(delay))
-            position_card["body"]["elements"][1]["rows"] = rows1 = [
+            position_card["body"]["elements"][1]["rows"] = rows1 = []
+            position_card["body"]["elements"][2]["rows"] = rows2 = []
+            position_card["body"]["elements"][3]["rows"] = rows3 = [
                 {"indicator": x} for x in ("多仓", "空仓", "总仓", "总资产")
             ]
-            position_card["body"]["elements"][2]["rows"] = rows2 = []
-            while 3 < len(position_card["body"]["elements"]):
+            while 4 < len(position_card["body"]["elements"]):
                 del position_card["body"]["elements"][-1]
             try:
                 task1 = asyncio.create_task(restapi_wrapper(self._client.account))
@@ -157,13 +158,13 @@ class PositionMonitor(BaseMonitor):
             lort = long + shrt
             lort_up = long_up + shrt_up
             totl = float(account["totalMarginBalance"])
-            rows1[0]["notional"] = long
-            rows1[1]["notional"] = shrt
-            rows1[2]["notional"] = lort
-            rows1[3]["notional"] = totl
-            rows1[0]["unrealized_profit"] = long_up
-            rows1[1]["unrealized_profit"] = shrt_up
-            rows1[2]["unrealized_profit"] = lort_up
+            rows3[0]["notional"] = long
+            rows3[1]["notional"] = shrt
+            rows3[2]["notional"] = lort
+            rows3[3]["notional"] = totl
+            rows3[0]["unrealized_profit"] = long_up
+            rows3[1]["unrealized_profit"] = shrt_up
+            rows3[2]["unrealized_profit"] = lort_up
             if 1 <= len(position_dq):
                 oth_position = position_dq[-1]
                 oth_long = oth_shrt = 0.0
@@ -175,26 +176,23 @@ class PositionMonitor(BaseMonitor):
                 long_pnl1h = long - oth_long
                 shrt_pnl1h = oth_shrt - shrt
                 lort_pnl1h = long_pnl1h + shrt_pnl1h
-                rows1[0]["pnl1h"] = long_pnl1h
-                rows1[1]["pnl1h"] = shrt_pnl1h
-                rows1[2]["pnl1h"] = lort_pnl1h
+                rows3[0]["pnl1h"] = long_pnl1h
+                rows3[1]["pnl1h"] = shrt_pnl1h
+                rows3[2]["pnl1h"] = lort_pnl1h
             if 1 <= len(account_dq):
                 oth_account = account_dq[-1]
                 oth_totl = float(oth_account["totalMarginBalance"])
                 totl_pnl1h = totl - oth_totl
-                rows1[3]["pnl1h"] = totl_pnl1h
+                rows3[3]["pnl1h"] = totl_pnl1h
             var = await json_load(var_json)
             totl_max = max(totl, float(var.get("totl_max", "0.0")))
             var["totl_max"] = str(totl_max)
             if 0 < totl_max:
                 drawdown_percent = 100 * (totl_max - totl) / totl_max
-                rows1[3]["drawdown_percent"] = drawdown_percent
+                rows3[3]["drawdown_percent"] = drawdown_percent
                 if self._drawdown_percent_threshold <= drawdown_percent:
                     position_card["body"]["elements"].append(at_all_element)
-            for pos in sorted(
-                position.values(),
-                key=lambda x: ("-" == x["notional"][0], -float(x["unRealizedProfit"])),
-            ):
+            for pos in sorted(position.values(), key=lambda x: float(x["unRealizedProfit"]), reverse=True):
                 ps = "-" == pos["notional"][0]
                 f_ps = markdown_color("空", "red") if ps else markdown_color("多", "green")
                 symbol = pos["symbol"]
@@ -208,7 +206,7 @@ class PositionMonitor(BaseMonitor):
                 entry_notional = entry_price * position_amt
                 unrealized_profit_percent = 100 * unrealized_profit / entry_notional if 0 < entry_notional else 0.0
                 row = {"position": f"{f_ps} {f_symbol}"}
-                rows2.append(row)
+                (rows2 if ps else rows1).append(row)
                 row["notional"] = notional
                 row["notional_percent"] = notional_percent
                 row["unrealized_profit"] = unrealized_profit
@@ -230,7 +228,7 @@ class PositionMonitor(BaseMonitor):
                         row["change12h_percent"] = change12h_percent
             account_dq.append(account)
             position_dq.append(position)
-            csv_row = {"timestamp": server_time, "table1": rows1, "table2": rows2}
+            csv_row = {"timestamp": server_time, "table1": rows1, "table2": rows2, "table3": rows3}
             task1 = asyncio.create_task(self._bot.send_interactive(position_card))
             task2 = asyncio.create_task(json_dump(var_json, var))
             task3 = asyncio.create_task(csv_append(position_csv, csv_row))

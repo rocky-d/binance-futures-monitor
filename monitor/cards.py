@@ -114,65 +114,8 @@ POSITION_CARD = {
                 "rows": [],
                 "columns": [
                     {
-                        "name": "indicator",
-                        "display_name": "指标",
-                        "data_type": "markdown",
-                        "width": "80px",
-                    },
-                    {
-                        "name": "notional",
-                        "display_name": "名义价值(U)",
-                        "data_type": "number",
-                        "format": {
-                            "precision": 2,
-                            "separator": False,
-                        },
-                        "width": "120px",
-                    },
-                    {
-                        "name": "unrealized_profit",
-                        "display_name": "未实现盈亏(U)",
-                        "data_type": "number",
-                        "format": {
-                            "precision": 2,
-                            "separator": False,
-                        },
-                        "width": "120px",
-                    },
-                    {
-                        "name": "pnl1h",
-                        "display_name": "近1h盈亏(U)",
-                        "data_type": "number",
-                        "format": {
-                            "precision": 2,
-                            "separator": False,
-                        },
-                        "width": "120px",
-                    },
-                    {
-                        "name": "drawdown_percent",
-                        "display_name": "当前回撤(%)",
-                        "data_type": "number",
-                        "format": {
-                            "precision": 2,
-                            "separator": False,
-                        },
-                        "width": "120px",
-                    },
-                ],
-            },
-            {
-                "tag": "table",
-                "freeze_first_column": False,
-                "page_size": 10,
-                "row_height": "auto",
-                "row_max_height": "60px",
-                "header_style": {},
-                "rows": [],
-                "columns": [
-                    {
                         "name": "position",
-                        "display_name": "持仓",
+                        "display_name": "多仓",
                         "data_type": "markdown",
                         "width": "165px",
                     },
@@ -259,6 +202,170 @@ POSITION_CARD = {
                     {
                         "name": "change12h_percent",
                         "display_name": "近12h涨跌(%)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 2,
+                            "separator": False,
+                        },
+                        "width": "120px",
+                    },
+                ],
+            },
+            {
+                "tag": "table",
+                "freeze_first_column": False,
+                "page_size": 10,
+                "row_height": "auto",
+                "row_max_height": "60px",
+                "header_style": {},
+                "rows": [],
+                "columns": [
+                    {
+                        "name": "position",
+                        "display_name": "空仓",
+                        "data_type": "markdown",
+                        "width": "165px",
+                    },
+                    {
+                        "name": "position_amt",
+                        "display_name": "数量",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 2,
+                            "separator": False,
+                        },
+                        "width": "90px",
+                    },
+                    {
+                        "name": "notional",
+                        "display_name": "价值(U)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 2,
+                            "separator": False,
+                        },
+                        "width": "90px",
+                    },
+                    {
+                        "name": "notional_percent",
+                        "display_name": "价值(%)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 2,
+                            "separator": False,
+                        },
+                        "width": "90px",
+                    },
+                    {
+                        "name": "unrealized_profit",
+                        "display_name": "盈亏(U)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 2,
+                            "separator": False,
+                        },
+                        "width": "90px",
+                    },
+                    {
+                        "name": "unrealized_profit_percent",
+                        "display_name": "盈亏(%)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 2,
+                            "separator": False,
+                        },
+                        "width": "90px",
+                    },
+                    {
+                        "name": "entry_price",
+                        "display_name": "开仓价格(U)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 5,
+                            "separator": False,
+                        },
+                        "width": "120px",
+                    },
+                    {
+                        "name": "mark_price",
+                        "display_name": "标记价格(U)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 5,
+                            "separator": False,
+                        },
+                        "width": "120px",
+                    },
+                    {
+                        "name": "change1h_percent",
+                        "display_name": "近1h涨跌(%)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 2,
+                            "separator": False,
+                        },
+                        "width": "120px",
+                    },
+                    {
+                        "name": "change12h_percent",
+                        "display_name": "近12h涨跌(%)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 2,
+                            "separator": False,
+                        },
+                        "width": "120px",
+                    },
+                ],
+            },
+            {
+                "tag": "table",
+                "freeze_first_column": False,
+                "page_size": 10,
+                "row_height": "auto",
+                "row_max_height": "60px",
+                "header_style": {},
+                "rows": [],
+                "columns": [
+                    {
+                        "name": "indicator",
+                        "display_name": "指标",
+                        "data_type": "markdown",
+                        "width": "80px",
+                    },
+                    {
+                        "name": "notional",
+                        "display_name": "名义价值(U)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 2,
+                            "separator": False,
+                        },
+                        "width": "120px",
+                    },
+                    {
+                        "name": "unrealized_profit",
+                        "display_name": "未实现盈亏(U)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 2,
+                            "separator": False,
+                        },
+                        "width": "120px",
+                    },
+                    {
+                        "name": "pnl1h",
+                        "display_name": "近1h盈亏(U)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 2,
+                            "separator": False,
+                        },
+                        "width": "120px",
+                    },
+                    {
+                        "name": "drawdown_percent",
+                        "display_name": "当前回撤(%)",
                         "data_type": "number",
                         "format": {
                             "precision": 2,
