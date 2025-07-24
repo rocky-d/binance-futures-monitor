@@ -145,6 +145,14 @@ class PositionMonitor(BaseMonitor):
                 await self._bot.send_interactive(error_card)
                 continue
             position = {x["symbol"]: x for x in data}
+            try:
+                data = await restapi_wrapper(self._client.time)
+            except Exception as e:
+                error_card["body"]["elements"][1]["text"]["content"] = message = repr(e)
+                logger.error(message)
+                await self._bot.send_interactive(error_card)
+                continue
+            server_time = data["serverTime"]
             rows1.append({"indicator": "多仓"})
             rows1.append({"indicator": "空仓"})
             rows1.append({"indicator": "总仓"})
@@ -236,7 +244,7 @@ class PositionMonitor(BaseMonitor):
             position_dq.append(position)
             await self._bot.send_interactive(position_card)
             await json_dump(var_json, var)
-            await csv_append(position_csv, {"timestamp": time_ms(), "table1": rows1, "table2": rows2})
+            await csv_append(position_csv, {"timestamp": server_time, "table1": rows1, "table2": rows2})
 
 
 class MarketMonitor(BaseMonitor):
