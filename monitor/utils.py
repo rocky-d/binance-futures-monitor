@@ -12,6 +12,7 @@ from loguru import logger
 
 __all__ = [
     "format_symbol",
+    "markdown_color",
     "time_ms",
     "parse_interval",
     "format_milliseconds",
@@ -31,11 +32,20 @@ __all__ = [
 def format_symbol(
     symbol: str,
 ) -> str:
+    if "/" in symbol:
+        return symbol
     for suffix in "USDT", "USDC", "BTC", "ETH", "BNB":
         if symbol.endswith(suffix):
             symbol = symbol[: -len(suffix)] + "/" + suffix
             break
     return symbol
+
+
+def markdown_color(
+    s: str,
+    color: str,
+) -> str:
+    return f"<font color='{color}'>{s}</font>"
 
 
 def time_ms() -> int:

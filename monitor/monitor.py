@@ -53,15 +53,15 @@ class BaseMonitor:
         if self.running:
             logger.warning(f"{self} have started")
             return
-        coroutines = []
+        coros = []
         for name in dir(self):
             if not name.startswith("monitor"):
                 continue
             attr = getattr(self, name)
             if not asyncio.iscoroutinefunction(attr):
                 continue
-            coroutines.append(attr())
-        self._tasks.extend(map(asyncio.create_task, coroutines))
+            coros.append(attr())
+        self._tasks.extend(map(asyncio.create_task, coros))
         logger.info(f"{self} started")
 
     async def stop(
@@ -196,7 +196,7 @@ class PositionMonitor(BaseMonitor):
                 key=lambda x: ("-" == x["notional"][0], -float(x["unRealizedProfit"])),
             ):
                 ps = "-" == pos["notional"][0]
-                ps_str = "<font color='red'>空</font>" if ps else "<font color='green'>多</font>"
+                ps_str = markdown_color("空", "red") if ps else markdown_color("多", "green")
                 symbol = pos["symbol"]
                 fsymbol = format_symbol(symbol)
                 notional = abs(float(pos["notional"]))
@@ -208,6 +208,7 @@ class PositionMonitor(BaseMonitor):
                 entry_notional = entry_price * position_amt
                 unrealized_profit_percent = 100 * unrealized_profit / entry_notional if 0 < entry_notional else 0.0
                 row = {"position": f"{ps_str} {fsymbol}"}
+                rows2.append(row)
                 row["notional"] = notional
                 row["notional_percent"] = notional_percent
                 row["unrealized_profit"] = unrealized_profit
@@ -227,7 +228,6 @@ class PositionMonitor(BaseMonitor):
                     if 0 < oth_mark_price:
                         change12h_percent = 100 * (mark_price - oth_mark_price) / oth_mark_price
                         row["change12h_percent"] = change12h_percent
-                rows2.append(row)
             account_dq.append(account)
             position_dq.append(position)
             csv_row = {"timestamp": server_time, "table1": rows1, "table2": rows2}
@@ -408,16 +408,16 @@ class MarketMonitor(BaseMonitor):
                         continue
                     memories[key] = t
                     row = {}
+                    rows.append(row)
                     fsymbol = format_symbol(symbol)
                     if symbol in self._positions:
                         ps = "-" == self._positions[symbol]["notional"][0]
-                        ps_str = "<font color='red'>空</font>" if ps else "<font color='green'>多</font>"
+                        ps_str = markdown_color("空", "red") if ps else markdown_color("多", "green")
                         row["symbol"] = f"{ps_str} {fsymbol}"
                     else:
                         row["symbol"] = fsymbol
                     row["timedelta"] = format_milliseconds(tw.interval)
                     row["change_percent"] = change_percent
-                    rows.append(row)
                     sorting_map[row["symbol"]] = (
                         0 if symbol in self._positions else 1,
                         tw.interval,
@@ -595,7 +595,7 @@ class OrderMonitor(BaseMonitor):
                 order_id = order["o"]["i"]
                 forder_id = str(order_id)[:7]
                 side = order["o"]["S"]
-                fside = "<font color='green'>买</font>" if "BUY" == side else "<font color='red'>卖</font>"
+                fside = markdown_color("买", "green") if "BUY" == side else markdown_color("卖", "red")
                 symbol = order["o"]["s"]
                 fsymbol = format_symbol(symbol)
                 last_price = float(order["o"]["L"])
@@ -626,6 +626,7 @@ class OrderMonitor(BaseMonitor):
                 if order_id in self._new_orders_by_id and "PARTIALLY_FILLED" != status:
                     del self._new_orders_by_id[order_id]
                 row = {}
+                rows.append(row)
                 row["timestamp"] = timestamp
                 row["order_id"] = forder_id
                 row["side"] = fside
@@ -633,10 +634,7 @@ class OrderMonitor(BaseMonitor):
                 row["last_quantity"] = last_quantity
                 row["last_price"] = last_price
                 row["last_notional"] = last_notional
-                # row["slippage"] = slippage
                 row["slippage_percent"] = slippage_percent
-                # row["commission"] = commission
-                # row["commission_percent"] = commission_percent
                 row["realized_profit"] = realized_profit
                 row["filled_percent"] = filled_percent
                 row["delay"] = fdelay
@@ -645,7 +643,6 @@ class OrderMonitor(BaseMonitor):
                 row["status"] = fstatus
                 row["order_type"] = order_type
                 row["valid_type"] = valid_type
-                rows.append(row)
             if 0 == len(rows):
                 continue
             task1 = asyncio.create_task(self._bot.send_interactive(order_card))
@@ -741,17 +738,17 @@ class ExchangeMonitor(BaseMonitor):
                     continue
                 memories[key] = t
                 row = {}
+                rows.append(row)
                 fsymbol = format_symbol(symbol)
                 if symbol in self._positions:
                     ps = "-" == self._positions[symbol]["notional"][0]
-                    ps_str = "<font color='red'>空</font>" if ps else "<font color='green'>多</font>"
+                    ps_str = markdown_color("空", "red") if ps else markdown_color("多", "green")
                     row["symbol"] = f"{ps_str} {fsymbol}"
                 else:
                     row["symbol"] = fsymbol
                 row["status"] = status
                 row["onboard_date"] = onboard_date
                 row["delivery_date"] = delivery_date
-                rows.append(row)
             if 0 == len(rows):
                 continue
             await self._bot.send_interactive(exchange_card)
