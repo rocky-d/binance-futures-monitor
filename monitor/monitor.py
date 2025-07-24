@@ -114,8 +114,8 @@ class PositionMonitor(BaseMonitor):
         error_card = error_card_factory()
         position_card = position_card_factory()
 
+        var_json = pathlib.Path(r"./var.json")
         position_csv = pathlib.Path(r"./data/position.csv")
-        var_json = pathlib.Path(r"./data/var.json")
         account_dq = collections.deque(maxlen=1)
         position_dq = collections.deque(maxlen=12)
         delay = until_next_hour(minute=self._minute)
