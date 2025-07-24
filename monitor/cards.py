@@ -358,12 +358,8 @@ ORDER_CARD = {
                     {
                         "name": "order_id",
                         "display_name": "订单ID",
-                        "data_type": "number",
-                        "format": {
-                            "precision": 0,
-                            "separator": False,
-                        },
-                        "width": "120px",
+                        "data_type": "markdown",
+                        "width": "80px",
                     },
                     {
                         "name": "side",
@@ -379,43 +375,33 @@ ORDER_CARD = {
                     },
                     {
                         "name": "last_quantity",
-                        "display_name": "数量",
+                        "display_name": "成交数量",
                         "data_type": "number",
                         "format": {
                             "precision": 2,
                             "separator": False,
                         },
-                        "width": "80px",
+                        "width": "100px",
                     },
                     {
                         "name": "last_price",
-                        "display_name": "价格(U)",
+                        "display_name": "成交价格(U)",
                         "data_type": "number",
                         "format": {
                             "precision": 5,
                             "separator": False,
                         },
-                        "width": "80px",
+                        "width": "100px",
                     },
                     {
                         "name": "last_notional",
-                        "display_name": "价值(U)",
+                        "display_name": "成交价值(U)",
                         "data_type": "number",
                         "format": {
                             "precision": 2,
                             "separator": False,
                         },
-                        "width": "80px",
-                    },
-                    {
-                        "name": "slippage",
-                        "display_name": "滑点(U)",
-                        "data_type": "number",
-                        "format": {
-                            "precision": 5,
-                            "separator": False,
-                        },
-                        "width": "80px",
+                        "width": "100px",
                     },
                     {
                         "name": "slippage_percent",
@@ -426,26 +412,6 @@ ORDER_CARD = {
                             "separator": False,
                         },
                         "width": "80px",
-                    },
-                    {
-                        "name": "commission",
-                        "display_name": "手续费(U)",
-                        "data_type": "number",
-                        "format": {
-                            "precision": 5,
-                            "separator": False,
-                        },
-                        "width": "100px",
-                    },
-                    {
-                        "name": "commission_percent",
-                        "display_name": "手续费(%)",
-                        "data_type": "number",
-                        "format": {
-                            "precision": 2,
-                            "separator": False,
-                        },
-                        "width": "100px",
                     },
                     {
                         "name": "realized_profit",

@@ -593,6 +593,7 @@ class OrderMonitor(BaseMonitor):
             for order in orders:
                 timestamp = order["o"]["T"]
                 order_id = order["o"]["i"]
+                forder_id = str(order_id)[:7]
                 side = order["o"]["S"]
                 fside = "<font color='green'>买</font>" if "BUY" == side else "<font color='red'>卖</font>"
                 symbol = order["o"]["s"]
@@ -626,16 +627,16 @@ class OrderMonitor(BaseMonitor):
                     del self._new_orders_by_id[order_id]
                 row = {}
                 row["timestamp"] = timestamp
-                row["order_id"] = order_id
+                row["order_id"] = forder_id
                 row["side"] = fside
                 row["symbol"] = fsymbol
                 row["last_quantity"] = last_quantity
                 row["last_price"] = last_price
                 row["last_notional"] = last_notional
-                row["slippage"] = slippage
+                # row["slippage"] = slippage
                 row["slippage_percent"] = slippage_percent
-                row["commission"] = commission
-                row["commission_percent"] = commission_percent
+                # row["commission"] = commission
+                # row["commission_percent"] = commission_percent
                 row["realized_profit"] = realized_profit
                 row["filled_percent"] = filled_percent
                 row["delay"] = fdelay
