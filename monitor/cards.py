@@ -404,16 +404,6 @@ ORDER_CARD = {
                         "width": "100px",
                     },
                     {
-                        "name": "slippage_percent",
-                        "display_name": "滑点(%)",
-                        "data_type": "number",
-                        "format": {
-                            "precision": 2,
-                            "separator": False,
-                        },
-                        "width": "80px",
-                    },
-                    {
                         "name": "realized_profit",
                         "display_name": "实现盈亏(U)",
                         "data_type": "number",
@@ -432,6 +422,16 @@ ORDER_CARD = {
                             "separator": False,
                         },
                         "width": "100px",
+                    },
+                    {
+                        "name": "slippage_percent",
+                        "display_name": "滑点(%)",
+                        "data_type": "number",
+                        "format": {
+                            "precision": 2,
+                            "separator": False,
+                        },
+                        "width": "80px",
                     },
                     {
                         "name": "delay",

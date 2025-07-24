@@ -588,6 +588,7 @@ class OrderMonitor(BaseMonitor):
             delay = until_next_minute()
             sleep_task = asyncio.create_task(asyncio.sleep(delay))
             order_card["body"]["elements"][1]["rows"] = rows = []
+            csv_rows = []
             orders = sorted(self._nonnew_orders_dq, key=lambda x: x["o"]["T"])
             self._nonnew_orders_dq.clear()
             for order in orders:
@@ -598,14 +599,15 @@ class OrderMonitor(BaseMonitor):
                 fside = markdown_color("买", "green") if "BUY" == side else markdown_color("卖", "red")
                 symbol = order["o"]["s"]
                 fsymbol = format_symbol(symbol)
+                price = float(order["o"]["p"])
+                quantity = float(order["o"]["q"])
+                notional = quantity * price
                 last_price = float(order["o"]["L"])
                 last_quantity = float(order["o"]["l"])
                 last_notional = last_quantity * last_price
                 realized_profit = float(order["o"]["rp"])
-                price = float(order["o"]["p"])
-                quantity = float(order["o"]["q"])
-                cum_quantity = float(order["o"]["z"])
-                filled_percent = 100 * cum_quantity / quantity if 0 < quantity else 0.0
+                filled_quantity = float(order["o"]["z"])
+                filled_percent = 100 * filled_quantity / quantity if 0 < quantity else 0.0
                 slippage = last_price - price if "BUY" == side else price - last_price
                 slippage_percent = 100 * slippage / price if 0 < price else 0.0
                 commission = float(order["o"]["n"])
@@ -616,8 +618,7 @@ class OrderMonitor(BaseMonitor):
                 else:
                     delay = None
                     fdelay = "--"
-                is_maker = order["o"]["m"]
-                role = "MAKER" if is_maker else "TAKER"
+                role = "MAKER" if order["o"]["m"] else "TAKER"
                 task = order["o"]["x"]
                 status = order["o"]["X"]
                 fstatus = {"PARTIALLY_FILLED": "PARTIAL"}.get(status, status)
@@ -634,19 +635,44 @@ class OrderMonitor(BaseMonitor):
                 row["last_quantity"] = last_quantity
                 row["last_price"] = last_price
                 row["last_notional"] = last_notional
-                row["slippage_percent"] = slippage_percent
                 row["realized_profit"] = realized_profit
                 row["filled_percent"] = filled_percent
+                row["slippage_percent"] = slippage_percent
                 row["delay"] = fdelay
                 row["role"] = role
                 row["task"] = task
                 row["status"] = fstatus
                 row["order_type"] = order_type
                 row["valid_type"] = valid_type
+                csv_row = {}
+                csv_rows.append(csv_row)
+                csv_row["timestamp"] = timestamp
+                csv_row["order_id"] = order_id
+                csv_row["side"] = side
+                csv_row["symbol"] = symbol
+                csv_row["quantity"] = quantity
+                csv_row["price"] = price
+                csv_row["notional"] = notional
+                csv_row["last_quantity"] = last_quantity
+                csv_row["last_price"] = last_price
+                csv_row["last_notional"] = last_notional
+                csv_row["realized_profit"] = realized_profit
+                csv_row["filled_quantity"] = filled_quantity
+                csv_row["filled_percent"] = filled_percent
+                csv_row["slippage"] = slippage
+                csv_row["slippage_percent"] = slippage_percent
+                csv_row["commission"] = commission
+                csv_row["commission_percent"] = commission_percent
+                csv_row["delay"] = delay
+                csv_row["role"] = role
+                csv_row["task"] = task
+                csv_row["status"] = status
+                csv_row["order_type"] = order_type
+                csv_row["valid_type"] = valid_type
             if 0 == len(rows):
                 continue
             task1 = asyncio.create_task(self._bot.send_interactive(order_card))
-            task2 = asyncio.create_task(csv_appendrows(orders_csv, rows))
+            task2 = asyncio.create_task(csv_appendrows(orders_csv, csv_rows))
             await task1
             await task2
 
