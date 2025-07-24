@@ -115,8 +115,7 @@ class PositionMonitor(BaseMonitor):
         error_card = error_card_factory()
         position_card = position_card_factory()
 
-        position1_csv = pathlib.Path(r"./data/position1.csv")
-        position2_csv = pathlib.Path(r"./data/position2.csv")
+        position_csv = pathlib.Path(r"./data/position.csv")
         var_json = pathlib.Path(r"./data/var.json")
         var = await json_load(var_json)
         totl_max = float(var.setdefault("totl_max", "0.0"))
@@ -240,9 +239,7 @@ class PositionMonitor(BaseMonitor):
             await self._bot.send_interactive(position_card)
             var["totl_max"] = str(totl_max)
             await json_dump(var_json, var)
-            timestamp = time_ms()
-            await csv_append(position1_csv, {"timestamp": timestamp, "table": rows1})
-            await csv_append(position2_csv, {"timestamp": timestamp, "table": rows2})
+            await csv_append(position_csv, {"timestamp": time_ms(), "table1": rows1, "table2": rows2})
 
 
 class MarketMonitor(BaseMonitor):
