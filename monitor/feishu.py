@@ -45,7 +45,7 @@ class BaseBot:
     async def _engine(
         self,
     ) -> None:
-        pass
+        raise NotImplementedError
 
     async def start(
         self,
@@ -106,7 +106,7 @@ class Bot(BaseBot):
         url = self._url
         delay = self._delay
         while True:
-            payload = await self._que.get()
+            payload, event = await self._que.get()
             logger.info(f"payload: {repr(payload)[:256]}")
             max_tries = 3
             for _ in range(max_tries):
@@ -127,45 +127,56 @@ class Bot(BaseBot):
                 break
             else:
                 logger.error(f"{status} {reason} {text}\n{headers}")
+            event.set()
             self._que.task_done()
 
     async def send_text(
         self,
         text: str,
-    ) -> None:
+    ) -> asyncio.Event:
+        event = asyncio.Event()
         payload = {"msg_type": "text", "content": {"text": text}}
-        await self._que.put(payload)
+        await self._que.put((payload, event))
+        return event
 
     async def send_post(
         self,
         post: dict,
-    ) -> None:
+    ) -> asyncio.Event:
+        event = asyncio.Event()
         payload = {"msg_type": "post", "content": {"post": post}}
-        await self._que.put(payload)
+        await self._que.put((payload, event))
+        return event
 
     async def send_share_chat(
         self,
         share_chat_id: str,
-    ) -> None:
+    ) -> asyncio.Event:
+        event = asyncio.Event()
         payload = {
             "msg_type": "share_chat",
             "content": {"share_chat_id": share_chat_id},
         }
-        await self._que.put(payload)
+        await self._que.put((payload, event))
+        return event
 
     async def send_image(
         self,
         image_key: str,
-    ) -> None:
+    ) -> asyncio.Event:
+        event = asyncio.Event()
         payload = {"msg_type": "image", "content": {"image_key": image_key}}
-        await self._que.put(payload)
+        await self._que.put((payload, event))
+        return event
 
     async def send_interactive(
         self,
         card: dict,
-    ) -> None:
+    ) -> asyncio.Event:
+        event = asyncio.Event()
         payload = {"msg_type": "interactive", "card": card}
-        await self._que.put(payload)
+        await self._que.put((payload, event))
+        return event
 
 
 class BotNowait(BaseBot):
@@ -195,7 +206,7 @@ class BotNowait(BaseBot):
             await asyncio.sleep(1.0)
             if self._que.empty():
                 continue
-            payload = self._que.get_nowait()
+            payload, event = self._que.get_nowait()
             logger.info(f"payload: {repr(payload)[:256]}")
             max_tries = 3
             for _ in range(max_tries):
@@ -216,42 +227,53 @@ class BotNowait(BaseBot):
                 break
             else:
                 logger.error(f"{status} {reason} {text}\n{headers}")
+            event.set()
             self._que.task_done()
 
     def send_text(
         self,
         text: str,
-    ) -> None:
+    ) -> asyncio.Event:
+        event = asyncio.Event()
         payload = {"msg_type": "text", "content": {"text": text}}
-        self._que.put_nowait(payload)
+        self._que.put_nowait((payload, event))
+        return event
 
     def send_post(
         self,
         post: dict,
-    ) -> None:
+    ) -> asyncio.Event:
+        event = asyncio.Event()
         payload = {"msg_type": "post", "content": {"post": post}}
-        self._que.put_nowait(payload)
+        self._que.put_nowait((payload, event))
+        return event
 
     def send_share_chat(
         self,
         share_chat_id: str,
-    ) -> None:
+    ) -> asyncio.Event:
+        event = asyncio.Event()
         payload = {
             "msg_type": "share_chat",
             "content": {"share_chat_id": share_chat_id},
         }
-        self._que.put_nowait(payload)
+        self._que.put_nowait((payload, event))
+        return event
 
     def send_image(
         self,
         image_key: str,
-    ) -> None:
+    ) -> asyncio.Event:
+        event = asyncio.Event()
         payload = {"msg_type": "image", "content": {"image_key": image_key}}
-        self._que.put_nowait(payload)
+        self._que.put_nowait((payload, event))
+        return event
 
     def send_interactive(
         self,
         card: dict,
-    ) -> None:
+    ) -> asyncio.Event:
+        event = asyncio.Event()
         payload = {"msg_type": "interactive", "card": card}
-        self._que.put_nowait(payload)
+        self._que.put_nowait((payload, event))
+        return event
