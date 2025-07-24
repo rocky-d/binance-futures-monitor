@@ -117,8 +117,6 @@ class PositionMonitor(BaseMonitor):
 
         position_csv = pathlib.Path(r"./data/position.csv")
         var_json = pathlib.Path(r"./data/var.json")
-        var = await json_load(var_json)
-        totl_max = float(var.setdefault("totl_max", "0.0"))
         account_dq = collections.deque(maxlen=1)
         position_dq = collections.deque(maxlen=12)
         delay = until_next_hour(minute=self._minute)
@@ -190,11 +188,13 @@ class PositionMonitor(BaseMonitor):
                 totl_pnl1h = totl - oth_totl
                 rows1[3]["pnl1h"] = totl_pnl1h
             var = await json_load(var_json)
-            totl_max = max(totl_max, float(var.setdefault("totl_max", "0.0")))
-            totl_max = max(totl_max, totl)
+            totl_max = max(totl, float(var.get("totl_max", "0.0")))
+            var["totl_max"] = str(totl_max)
             if 0 < totl_max:
                 drawdown_percent = 100 * (totl_max - totl) / totl_max
                 rows1[3]["drawdown_percent"] = drawdown_percent
+                if self._drawdown_percent_threshold <= drawdown_percent:
+                    position_card["body"]["elements"].append(at_all_element)
             for pos in sorted(
                 position.values(),
                 key=lambda x: ("-" == x["notional"][0], -float(x["unRealizedProfit"])),
@@ -234,10 +234,7 @@ class PositionMonitor(BaseMonitor):
                 rows2.append(row)
             account_dq.append(account)
             position_dq.append(position)
-            if self._drawdown_percent_threshold <= rows1[3]["drawdown_percent"]:
-                position_card["body"]["elements"].append(at_all_element)
             await self._bot.send_interactive(position_card)
-            var["totl_max"] = str(totl_max)
             await json_dump(var_json, var)
             await csv_append(position_csv, {"timestamp": time_ms(), "table1": rows1, "table2": rows2})
 
