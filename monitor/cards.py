@@ -1,6 +1,7 @@
 import copy
 
 __all__ = [
+    "local_datetime_element_factory",
     "at_all_element_factory",
     "launch_card_factory",
     "finish_card_factory",
@@ -10,6 +11,13 @@ __all__ = [
     "order_card_factory",
     "exchange_card_factory",
 ]
+
+LOCAL_DATETIME_ELEMENT = {
+    "tag": "markdown",
+    "content": "<local_datetime format_type='date_num'></local_datetime>"
+    + " <local_datetime format_type='time_sec'></local_datetime>"
+    + " <local_datetime format_type='timezone'></local_datetime>",
+}
 
 AT_ALL_ELEMENT = {
     "tag": "markdown",
@@ -30,12 +38,7 @@ LAUNCH_CARD = {
     },
     "body": {
         "elements": [
-            {
-                "tag": "markdown",
-                "content": "<local_datetime format_type='date_num'></local_datetime>"
-                + " <local_datetime format_type='time_sec'></local_datetime>"
-                + " <local_datetime format_type='timezone'></local_datetime>",
-            },
+            LOCAL_DATETIME_ELEMENT,
         ],
     },
 }
@@ -54,12 +57,7 @@ FINISH_CARD = {
     },
     "body": {
         "elements": [
-            {
-                "tag": "markdown",
-                "content": "<local_datetime format_type='date_num'></local_datetime>"
-                + " <local_datetime format_type='time_sec'></local_datetime>"
-                + " <local_datetime format_type='timezone'></local_datetime>",
-            },
+            LOCAL_DATETIME_ELEMENT,
         ],
     },
 }
@@ -78,12 +76,7 @@ ERROR_CARD = {
     },
     "body": {
         "elements": [
-            {
-                "tag": "markdown",
-                "content": "<local_datetime format_type='date_num'></local_datetime>"
-                + " <local_datetime format_type='time_sec'></local_datetime>"
-                + " <local_datetime format_type='timezone'></local_datetime>",
-            },
+            LOCAL_DATETIME_ELEMENT,
             {
                 "tag": "div",
                 "text": {
@@ -110,12 +103,7 @@ POSITION_CARD = {
     },
     "body": {
         "elements": [
-            {
-                "tag": "markdown",
-                "content": "<local_datetime format_type='date_num'></local_datetime>"
-                + " <local_datetime format_type='time_sec'></local_datetime>"
-                + " <local_datetime format_type='timezone'></local_datetime>",
-            },
+            LOCAL_DATETIME_ELEMENT,
             {
                 "tag": "table",
                 "freeze_first_column": False,
@@ -298,12 +286,7 @@ MARKET_CARD = {
     },
     "body": {
         "elements": [
-            {
-                "tag": "markdown",
-                "content": "<local_datetime format_type='date_num'></local_datetime>"
-                + " <local_datetime format_type='time_sec'></local_datetime>"
-                + " <local_datetime format_type='timezone'></local_datetime>",
-            },
+            LOCAL_DATETIME_ELEMENT,
             {
                 "tag": "table",
                 "freeze_first_column": False,
@@ -355,12 +338,7 @@ ORDER_CARD = {
     },
     "body": {
         "elements": [
-            {
-                "tag": "markdown",
-                "content": "<local_datetime format_type='date_num'></local_datetime>"
-                + " <local_datetime format_type='time_sec'></local_datetime>"
-                + " <local_datetime format_type='timezone'></local_datetime>",
-            },
+            LOCAL_DATETIME_ELEMENT,
             {
                 "tag": "table",
                 "freeze_first_column": False,
@@ -545,12 +523,7 @@ EXCHANGE_CARD = {
     },
     "body": {
         "elements": [
-            {
-                "tag": "markdown",
-                "content": "<local_datetime format_type='date_num'></local_datetime>"
-                + " <local_datetime format_type='time_sec'></local_datetime>"
-                + " <local_datetime format_type='timezone'></local_datetime>",
-            },
+            LOCAL_DATETIME_ELEMENT,
             {
                 "tag": "table",
                 "freeze_first_column": False,
@@ -592,6 +565,7 @@ EXCHANGE_CARD = {
     },
 }
 
+local_datetime_element_factory = lambda: copy.deepcopy(LOCAL_DATETIME_ELEMENT)
 at_all_element_factory = lambda: copy.deepcopy(AT_ALL_ELEMENT)
 launch_card_factory = lambda: copy.deepcopy(LAUNCH_CARD)
 finish_card_factory = lambda: copy.deepcopy(FINISH_CARD)

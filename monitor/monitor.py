@@ -125,38 +125,27 @@ class PositionMonitor(BaseMonitor):
             await sleep_task
             delay = until_next_hour(minute=self._minute)
             sleep_task = asyncio.create_task(asyncio.sleep(delay))
-            position_card["body"]["elements"][1]["rows"] = rows1 = []
+            position_card["body"]["elements"][1]["rows"] = rows1 = [
+                {"indicator": x} for x in ("多仓", "空仓", "总仓", "总资产")
+            ]
             position_card["body"]["elements"][2]["rows"] = rows2 = []
             while 3 < len(position_card["body"]["elements"]):
                 del position_card["body"]["elements"][-1]
             try:
-                data = await restapi_wrapper(self._client.account)
+                task1 = asyncio.create_task(restapi_wrapper(self._client.account))
+                task2 = asyncio.create_task(restapi_wrapper(self._client.get_position_risk))
+                task3 = asyncio.create_task(restapi_wrapper(self._client.time))
+                data1 = await task1
+                data2 = await task2
+                data3 = await task3
             except Exception as e:
                 error_card["body"]["elements"][1]["text"]["content"] = message = repr(e)
                 logger.error(message)
                 await self._bot.send_interactive(error_card)
                 continue
-            account = data
-            try:
-                data = await restapi_wrapper(self._client.get_position_risk)
-            except Exception as e:
-                error_card["body"]["elements"][1]["text"]["content"] = message = repr(e)
-                logger.error(message)
-                await self._bot.send_interactive(error_card)
-                continue
-            position = {x["symbol"]: x for x in data}
-            try:
-                data = await restapi_wrapper(self._client.time)
-            except Exception as e:
-                error_card["body"]["elements"][1]["text"]["content"] = message = repr(e)
-                logger.error(message)
-                await self._bot.send_interactive(error_card)
-                continue
-            server_time = data["serverTime"]
-            rows1.append({"indicator": "多仓"})
-            rows1.append({"indicator": "空仓"})
-            rows1.append({"indicator": "总仓"})
-            rows1.append({"indicator": "总资产"})
+            account = data1
+            position = {x["symbol"]: x for x in data2}
+            server_time = data3["serverTime"]
             long = shrt = 0.0
             long_up, shrt_up = 0.0, 0.0
             for pos in position.values():
@@ -242,9 +231,13 @@ class PositionMonitor(BaseMonitor):
                 rows2.append(row)
             account_dq.append(account)
             position_dq.append(position)
-            await self._bot.send_interactive(position_card)
-            await json_dump(var_json, var)
-            await csv_append(position_csv, {"timestamp": server_time, "table1": rows1, "table2": rows2})
+            csv_row = {"timestamp": server_time, "table1": rows1, "table2": rows2}
+            task1 = asyncio.create_task(self._bot.send_interactive(position_card))
+            task2 = asyncio.create_task(json_dump(var_json, var))
+            task3 = asyncio.create_task(csv_append(position_csv, csv_row))
+            await task1
+            await task2
+            await task3
 
 
 class MarketMonitor(BaseMonitor):
@@ -431,9 +424,10 @@ class MarketMonitor(BaseMonitor):
                         tw.interval,
                         -abs(change_percent),
                     )
-            if 0 < len(rows):
-                rows.sort(key=lambda x: sorting_map[x["symbol"]])
-                await self._bot.send_interactive(market_card)
+            if 0 == len(rows):
+                continue
+            rows.sort(key=lambda x: sorting_map[x["symbol"]])
+            await self._bot.send_interactive(market_card)
 
 
 class OrderMonitor(BaseMonitor):
@@ -652,9 +646,12 @@ class OrderMonitor(BaseMonitor):
                 row["order_type"] = order_type
                 row["valid_type"] = valid_type
                 rows.append(row)
-            if 0 < len(rows):
-                await self._bot.send_interactive(order_card)
-                await csv_appendrows(orders_csv, rows)
+            if 0 == len(rows):
+                continue
+            task1 = asyncio.create_task(self._bot.send_interactive(order_card))
+            task2 = asyncio.create_task(csv_appendrows(orders_csv, rows))
+            await task1
+            await task2
 
 
 class ExchangeMonitor(BaseMonitor):
@@ -716,23 +713,19 @@ class ExchangeMonitor(BaseMonitor):
             await sleep_task
             delay = until_next_hour(minute=self._minute)
             sleep_task = asyncio.create_task(asyncio.sleep(delay))
-            try:
-                data = await restapi_wrapper(self._client.exchange_info)
-            except Exception as e:
-                error_card["body"]["elements"][1]["text"]["content"] = message = repr(e)
-                logger.error(message)
-                await self._bot.send_interactive(error_card)
-                continue
             exchange_card["body"]["elements"][1]["rows"] = rows = []
-            symbols = data["symbols"]
             try:
-                data = await restapi_wrapper(self._client.time)
+                task1 = asyncio.create_task(restapi_wrapper(self._client.exchange_info))
+                task2 = asyncio.create_task(restapi_wrapper(self._client.time))
+                data1 = await task1
+                data2 = await task2
             except Exception as e:
                 error_card["body"]["elements"][1]["text"]["content"] = message = repr(e)
                 logger.error(message)
                 await self._bot.send_interactive(error_card)
                 continue
-            server_time = data["serverTime"]
+            symbols = data1["symbols"]
+            server_time = data2["serverTime"]
             for data in symbols:
                 if "PERPETUAL" != data["contractType"]:
                     continue
@@ -759,8 +752,9 @@ class ExchangeMonitor(BaseMonitor):
                 row["onboard_date"] = onboard_date
                 row["delivery_date"] = delivery_date
                 rows.append(row)
-            if 0 < len(rows):
-                await self._bot.send_interactive(exchange_card)
+            if 0 == len(rows):
+                continue
+            await self._bot.send_interactive(exchange_card)
 
 
 class MonitorGroup[BaseMonitor]:
