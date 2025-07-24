@@ -256,8 +256,6 @@ async def csv_appendrows(
     rows: list[dict[str, Any]],
 ) -> None:
     logger.info(f"csv_appendrows({repr(path)}, {repr(rows)[:64]})")
-    if 0 == len(rows):
-        return
     if path not in _file_locks:
         _file_locks[path] = asyncio.Lock()
     async with _file_locks[path]:
@@ -267,6 +265,8 @@ async def csv_appendrows(
             async with aiofiles.open(path, mode="w", encoding="utf-8") as f:
                 await f.write(",".join(map(_csv_field, keys)) + "\n")
                 await f.flush()
+        if 0 == len(rows):
+            return
         async with aiofiles.open(path, mode="a", encoding="utf-8") as f:
             await f.writelines(",".join(_csv_field(str(row[key])) for key in keys) + "\n" for row in rows)
             await f.flush()

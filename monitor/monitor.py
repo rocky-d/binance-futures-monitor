@@ -196,9 +196,9 @@ class PositionMonitor(BaseMonitor):
                 key=lambda x: ("-" == x["notional"][0], -float(x["unRealizedProfit"])),
             ):
                 ps = "-" == pos["notional"][0]
-                ps_str = markdown_color("空", "red") if ps else markdown_color("多", "green")
+                f_ps = markdown_color("空", "red") if ps else markdown_color("多", "green")
                 symbol = pos["symbol"]
-                fsymbol = format_symbol(symbol)
+                f_symbol = format_symbol(symbol)
                 notional = abs(float(pos["notional"]))
                 notional_percent = 100 * notional / lort if 0 < lort else 0.0
                 unrealized_profit = float(pos["unRealizedProfit"])
@@ -207,7 +207,7 @@ class PositionMonitor(BaseMonitor):
                 mark_price = float(pos["markPrice"])
                 entry_notional = entry_price * position_amt
                 unrealized_profit_percent = 100 * unrealized_profit / entry_notional if 0 < entry_notional else 0.0
-                row = {"position": f"{ps_str} {fsymbol}"}
+                row = {"position": f"{f_ps} {f_symbol}"}
                 rows2.append(row)
                 row["notional"] = notional
                 row["notional_percent"] = notional_percent
@@ -409,13 +409,13 @@ class MarketMonitor(BaseMonitor):
                     memories[key] = t
                     row = {}
                     rows.append(row)
-                    fsymbol = format_symbol(symbol)
+                    f_symbol = format_symbol(symbol)
                     if symbol in self._positions:
                         ps = "-" == self._positions[symbol]["notional"][0]
-                        ps_str = markdown_color("空", "red") if ps else markdown_color("多", "green")
-                        row["symbol"] = f"{ps_str} {fsymbol}"
+                        f_ps = markdown_color("空", "red") if ps else markdown_color("多", "green")
+                        row["symbol"] = f"{f_ps} {f_symbol}"
                     else:
-                        row["symbol"] = fsymbol
+                        row["symbol"] = f_symbol
                     row["timedelta"] = format_milliseconds(tw.interval)
                     row["change_percent"] = change_percent
                     sorting_map[row["symbol"]] = (
@@ -594,11 +594,11 @@ class OrderMonitor(BaseMonitor):
             for order in orders:
                 timestamp = order["o"]["T"]
                 order_id = order["o"]["i"]
-                forder_id = str(order_id)[:7]
+                f_order_id = str(order_id)[:7]
                 side = order["o"]["S"]
-                fside = markdown_color("买", "green") if "BUY" == side else markdown_color("卖", "red")
+                f_side = markdown_color("买", "green") if "BUY" == side else markdown_color("卖", "red")
                 symbol = order["o"]["s"]
-                fsymbol = format_symbol(symbol)
+                f_symbol = format_symbol(symbol)
                 price = float(order["o"]["p"])
                 quantity = float(order["o"]["q"])
                 notional = quantity * price
@@ -614,14 +614,14 @@ class OrderMonitor(BaseMonitor):
                 commission_percent = 100 * commission / last_notional if 0 < last_notional else 0.0
                 if order_id in self._new_orders_by_id:
                     delay = timestamp - self._new_orders_by_id[order_id]["o"]["T"]
-                    fdelay = format_milliseconds(delay)
+                    f_delay = format_milliseconds(delay)
                 else:
                     delay = None
-                    fdelay = "--"
+                    f_delay = "--"
                 role = "MAKER" if order["o"]["m"] else "TAKER"
                 task = order["o"]["x"]
                 status = order["o"]["X"]
-                fstatus = {"PARTIALLY_FILLED": "PARTIAL"}.get(status, status)
+                f_status = {"PARTIALLY_FILLED": "PARTIAL"}.get(status, status)
                 order_type = order["o"]["o"]
                 valid_type = order["o"]["f"]
                 if order_id in self._new_orders_by_id and "PARTIALLY_FILLED" != status:
@@ -629,19 +629,19 @@ class OrderMonitor(BaseMonitor):
                 row = {}
                 rows.append(row)
                 row["timestamp"] = timestamp
-                row["order_id"] = forder_id
-                row["side"] = fside
-                row["symbol"] = fsymbol
+                row["order_id"] = f_order_id
+                row["side"] = f_side
+                row["symbol"] = f_symbol
                 row["last_quantity"] = last_quantity
                 row["last_price"] = last_price
                 row["last_notional"] = last_notional
                 row["realized_profit"] = realized_profit
                 row["filled_percent"] = filled_percent
                 row["slippage_percent"] = slippage_percent
-                row["delay"] = fdelay
+                row["delay"] = f_delay
                 row["role"] = role
                 row["task"] = task
-                row["status"] = fstatus
+                row["status"] = f_status
                 row["order_type"] = order_type
                 row["valid_type"] = valid_type
                 csv_row = {}
@@ -765,13 +765,13 @@ class ExchangeMonitor(BaseMonitor):
                 memories[key] = t
                 row = {}
                 rows.append(row)
-                fsymbol = format_symbol(symbol)
+                f_symbol = format_symbol(symbol)
                 if symbol in self._positions:
                     ps = "-" == self._positions[symbol]["notional"][0]
-                    ps_str = markdown_color("空", "red") if ps else markdown_color("多", "green")
-                    row["symbol"] = f"{ps_str} {fsymbol}"
+                    f_ps = markdown_color("空", "red") if ps else markdown_color("多", "green")
+                    row["symbol"] = f"{f_ps} {f_symbol}"
                 else:
-                    row["symbol"] = fsymbol
+                    row["symbol"] = f_symbol
                 row["status"] = status
                 row["onboard_date"] = onboard_date
                 row["delivery_date"] = delivery_date
