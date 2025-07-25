@@ -4,7 +4,7 @@ from types import TracebackType
 from typing import Self, Type
 from loguru import logger
 
-from .cards import launch_card_factory, finish_card_factory
+from .cards import launch_card_factory, finish_card_factory, error_card_factory
 
 __all__ = [
     "BaseBot",
@@ -103,6 +103,8 @@ class Bot(BaseBot):
     async def _engine(
         self,
     ) -> None:
+        error_card = error_card_factory()
+
         url = self._url
         delay = self._delay
         while True:
@@ -126,7 +128,11 @@ class Bot(BaseBot):
                 logger.success(f"{status} {reason} {text}")
                 break
             else:
-                logger.error(f"{status} {reason} {text}\n{headers}")
+                message = f"{status} {reason} {text}\n{headers}"
+                logger.error(message)
+                error_card["body"]["elements"][1]["text"]["content"] = message
+                payload = {"msg_type": "interactive", "card": error_card}
+                resp = await self._sess.post(url, json=payload)
             event.set()
             self._que.task_done()
 
@@ -200,6 +206,8 @@ class BotNowait(BaseBot):
     async def _engine(
         self,
     ) -> None:
+        error_card = error_card_factory()
+
         url = self._url
         delay = self._delay
         while True:
@@ -226,7 +234,11 @@ class BotNowait(BaseBot):
                 logger.success(f"{status} {reason} {text}")
                 break
             else:
-                logger.error(f"{status} {reason} {text}\n{headers}")
+                message = f"{status} {reason} {text}\n{headers}"
+                logger.error(message)
+                error_card["body"]["elements"][1]["text"]["content"] = message
+                payload = {"msg_type": "interactive", "card": error_card}
+                resp = await self._sess.post(url, json=payload)
             event.set()
             self._que.task_done()
 
