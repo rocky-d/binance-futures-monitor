@@ -204,8 +204,7 @@ async def json_load(
     async with _file_locks[path]:
         async with aiofiles.open(path, mode="r", encoding="utf-8") as f:
             s = await f.read()
-    var = json.loads(s)
-    return var
+    return json.loads(s)
 
 
 async def json_dump(
