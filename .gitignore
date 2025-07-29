@@ -7,6 +7,7 @@
 .vscode/
 __pycache__/
 
+/data/
 /logs/
 /config-private.toml
 /var.json
