@@ -203,8 +203,8 @@ class PositionMonitor(BaseMonitor):
                 position_amt = abs(float(pos["positionAmt"]))
                 entry_price = float(pos["entryPrice"])
                 mark_price = float(pos["markPrice"])
-                entry_notional = entry_price * position_amt
-                unrealized_profit_percent = 100 * unrealized_profit / entry_notional if 0 < entry_notional else 0.0
+                margin = float(pos["positionInitialMargin"])
+                unrealized_profit_percent = 100 * unrealized_profit / margin if 0 < margin else 0.0
                 row = {"position": f"{f_ps} {f_symbol}"}
                 (rows2 if ps else rows1).append(row)
                 row["notional"] = notional
