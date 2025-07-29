@@ -345,7 +345,7 @@ POSITION_CARD = {
                     },
                     {
                         "name": "unrealized_profit",
-                        "display_name": "未实现盈亏(U)",
+                        "display_name": "未结盈亏(U)",
                         "data_type": "number",
                         "format": {
                             "precision": 2,
