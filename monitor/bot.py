@@ -122,7 +122,7 @@ class Bot(BaseBot):
                     logger.warning(f"{status} {reason} {text}")
                     continue
                 data = await resp.json()
-                if not isinstance(data, dict) or 0 != data.get("code"):
+                if not (isinstance(data, dict) and 0 == data.get("code")):
                     logger.warning(f"{status} {reason} {text}")
                     continue
                 logger.success(f"{status} {reason} {text}")
@@ -228,7 +228,7 @@ class BotNowait(BaseBot):
                     logger.warning(f"{status} {reason} {text}")
                     continue
                 data = await resp.json()
-                if not isinstance(data, dict) or 0 != data.get("code"):
+                if not (isinstance(data, dict) and 0 == data.get("code")):
                     logger.warning(f"{status} {reason} {text}")
                     continue
                 logger.success(f"{status} {reason} {text}")

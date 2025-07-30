@@ -14,9 +14,13 @@ __all__ = [
 
 LOCAL_DATETIME_ELEMENT = {
     "tag": "markdown",
-    "content": "<local_datetime format_type='date_num'></local_datetime>"
-    + " <local_datetime format_type='time_sec'></local_datetime>"
-    + " <local_datetime format_type='timezone'></local_datetime>",
+    "content": " ".join(
+        (
+            "<local_datetime format_type='date_num'></local_datetime>",
+            "<local_datetime format_type='time_sec'></local_datetime>",
+            "<local_datetime format_type='timezone'></local_datetime>",
+        ),
+    ),
 }
 
 AT_ALL_ELEMENT = {
