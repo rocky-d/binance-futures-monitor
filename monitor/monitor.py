@@ -228,7 +228,12 @@ class PositionMonitor(BaseMonitor):
                         row["change12h_percent"] = change12h_percent
             account_dq.append(account)
             position_dq.append(position)
-            csv_row = {"timestamp": server_time, "table1": rows1, "table2": rows2, "table3": rows3}
+            csv_row = {
+                "timestamp": server_time,
+                "table1": json.dumps(rows1),
+                "table2": json.dumps(rows2),
+                "table3": json.dumps(rows3),
+            }
             task1 = asyncio.create_task(self._bot.send_interactive(position_card))
             task2 = asyncio.create_task(json_dump(var_json, var))
             task3 = asyncio.create_task(csv_append(position_csv, csv_row))
