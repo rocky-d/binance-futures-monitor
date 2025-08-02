@@ -30,7 +30,7 @@ class BaseMonitor:
     def __init__(
         self,
     ) -> None:
-        self._tasks: list[asyncio.Task[None]] = []
+        self._task = None
 
     async def __aenter__(
         self,
@@ -46,6 +46,11 @@ class BaseMonitor:
     ) -> None:
         await self.stop()
 
+    async def _engine(
+        self,
+    ) -> None:
+        raise NotImplementedError
+
     async def start(
         self,
     ) -> None:
@@ -53,15 +58,7 @@ class BaseMonitor:
         if self.running:
             logger.warning(f"{self} have started")
             return
-        coros = []
-        for name in dir(self):
-            if not name.startswith("monitor"):
-                continue
-            attr = getattr(self, name)
-            if not asyncio.iscoroutinefunction(attr):
-                continue
-            coros.append(attr())
-        self._tasks.extend(map(asyncio.create_task, coros))
+        self._task = asyncio.create_task(self._engine())
         logger.info(f"{self} started")
 
     async def stop(
@@ -71,16 +68,15 @@ class BaseMonitor:
         if not self.running:
             logger.warning(f"{self} have stopped")
             return
-        for task in self._tasks:
-            task.cancel()
-        self._tasks.clear()
+        self._task.cancel()
+        self._task = None
         logger.info(f"{self} stopped")
 
     @property
     def running(
         self,
     ) -> bool:
-        return not all(task.cancelled() or task.done() for task in self._tasks)
+        return not (self._task is None or self._task.cancelled() or self._task.done())
 
 
 class PositionMonitor(BaseMonitor):
@@ -106,6 +102,12 @@ class PositionMonitor(BaseMonitor):
         )
         self._minute = minute
         self._drawdown_percent_threshold = drawdown_percent_threshold
+
+    async def _engine(
+        self,
+    ) -> None:
+        async with asyncio.TaskGroup() as tg:
+            tg.create_task(self.monitor_position())
 
     async def monitor_position(
         self,
@@ -284,6 +286,13 @@ class MarketMonitor(BaseMonitor):
             tw = SparseTimewindow(interval, unit=unit)
             tw.change_percent = change_percent
             tws.append(tw)
+
+    async def _engine(
+        self,
+    ) -> None:
+        async with asyncio.TaskGroup() as tg:
+            tg.create_task(self.monitor_positions())
+            tg.create_task(self.monitor_market())
 
     async def start(
         self,
@@ -464,6 +473,13 @@ class OrderMonitor(BaseMonitor):
         self._listenkey = ""
         self._new_orders_by_id = {}
         self._nonnew_orders_dq = collections.deque()
+
+    async def _engine(
+        self,
+    ) -> None:
+        async with asyncio.TaskGroup() as tg:
+            tg.create_task(self.monitor_listenkey())
+            tg.create_task(self.monitor_order())
 
     async def start(
         self,
@@ -702,6 +718,13 @@ class ExchangeMonitor(BaseMonitor):
         )
         self._positions = {}
         self._minute = minute
+
+    async def _engine(
+        self,
+    ) -> None:
+        async with asyncio.TaskGroup() as tg:
+            tg.create_task(self.monitor_positions())
+            tg.create_task(self.monitor_exchange())
 
     async def monitor_positions(
         self,
