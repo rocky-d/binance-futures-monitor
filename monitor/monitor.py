@@ -301,7 +301,7 @@ class MarketMonitor(BaseMonitor):
             return
         self._wsclient.mark_price_all_market(speed=self._speed)
         stream = f"!markPrice@arr@{self._speed}s" if 1 == self._speed else "!markPrice@arr"
-        logger.info(f"SUBSCRIBE: {stream}")
+        logger.success(f"SUBSCRIBE: {stream}")
         await super().start()
 
     async def stop(
@@ -351,7 +351,7 @@ class MarketMonitor(BaseMonitor):
         socket_manager.create_ws_connection()
         self._wsclient.mark_price_all_market(speed=self._speed)
         stream = f"!markPrice@arr@{self._speed}s" if 1 == self._speed else "!markPrice@arr"
-        logger.info(f"SUBSCRIBE: {stream}")
+        logger.success(f"SUBSCRIBE: {stream}")
 
     def on_ping(
         self,
@@ -496,7 +496,7 @@ class OrderMonitor(BaseMonitor):
         else:
             self._listenkey = data["listenKey"]
             self._wsclient.user_data(self._listenkey)
-            logger.info(f"SUBSCRIBE: {self._listenkey}")
+            logger.success(f"SUBSCRIBE: {self._listenkey}")
         await super().start()
 
     async def stop(
@@ -552,7 +552,7 @@ class OrderMonitor(BaseMonitor):
         logger.warning(f"on_error\n{repr(e)}")
         socket_manager.create_ws_connection()
         self._wsclient.user_data(self._listenkey)
-        logger.info(f"SUBSCRIBE: {self._listenkey}")
+        logger.success(f"SUBSCRIBE: {self._listenkey}")
 
     def on_ping(
         self,
@@ -588,10 +588,10 @@ class OrderMonitor(BaseMonitor):
             if self._listenkey == new_listenkey:
                 continue
             self._wsclient.user_data(self._listenkey, action="UNSUBSCRIBE")
-            logger.info(f"UNSUBSCRIBE: {self._listenkey}")
+            logger.success(f"UNSUBSCRIBE: {self._listenkey}")
             self._listenkey = new_listenkey
             self._wsclient.user_data(self._listenkey)
-            logger.info(f"SUBSCRIBE: {self._listenkey}")
+            logger.success(f"SUBSCRIBE: {self._listenkey}")
 
     async def monitor_order(
         self,
