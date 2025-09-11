@@ -1,5 +1,7 @@
 import asyncio
 import copy
+import datetime
+import os
 import tomllib
 from loguru import logger
 
@@ -20,6 +22,8 @@ async def main() -> None:
     if config["loguru"]["logger"]["remove"]:
         logger.remove()
     for kwargs in config["loguru"]["logger"]["add"]:
+        dir_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        kwargs["sink"] = os.path.join(f"./logs/{dir_name}/", kwargs["sink"])
         logger.add(**kwargs)
 
     position_bot = Bot(config["feishu_bot"]["webhook_position"])

@@ -5,7 +5,7 @@ slow_callback_duration = 10.0
 remove = true
 
 [[loguru.logger.add]]
-sink = "./logs/DEBUG__{time}.log"
+sink = "DEBUG__{time}.log"
 level = "DEBUG"
 format = "# {level.name}[{level.no}] | {time:YYYY-MM-DD HH:mm:ss.SSS Z} | {process.name}[{process.id}]:{thread.name}[{thread.id}] | File \"{file.path}\", line {line}, in {function}\n{message}\n"
 enqueue = true
@@ -13,7 +13,7 @@ rotation = "8 MB"
 retention = 2
 
 [[loguru.logger.add]]
-sink = "./logs/INFO__{time}.log"
+sink = "INFO__{time}.log"
 level = "INFO"
 format = "# {level.name}[{level.no}] | {time:YYYY-MM-DD HH:mm:ss.SSS Z} | {process.name}[{process.id}]:{thread.name}[{thread.id}] | File \"{file.path}\", line {line}, in {function}\n{message}\n"
 enqueue = true
@@ -21,7 +21,7 @@ rotation = "8 MB"
 retention = 128
 
 [[loguru.logger.add]]
-sink = "./logs/SUCCESS__{time}.log"
+sink = "SUCCESS__{time}.log"
 level = "SUCCESS"
 format = "# {level.name}[{level.no}] | {time:YYYY-MM-DD HH:mm:ss.SSS Z} | {process.name}[{process.id}]:{thread.name}[{thread.id}] | File \"{file.path}\", line {line}, in {function}\n{message}\n"
 enqueue = true
@@ -29,7 +29,7 @@ rotation = "8 MB"
 retention = 128
 
 [[loguru.logger.add]]
-sink = "./logs/WARNING__{time}.log"
+sink = "WARNING__{time}.log"
 level = "WARNING"
 format = "# {level.name}[{level.no}] | {time:YYYY-MM-DD HH:mm:ss.SSS Z} | {process.name}[{process.id}]:{thread.name}[{thread.id}] | File \"{file.path}\", line {line}, in {function}\n{message}\n"
 enqueue = true
