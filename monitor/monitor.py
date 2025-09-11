@@ -146,7 +146,7 @@ class PositionMonitor(BaseMonitor):
                 await self._bot.send_interactive(error_card)
                 continue
             account = data1
-            position = {x["symbol"]: x for x in data2}
+            position = {(x["symbol"], x["positionSide"]): x for x in data2}
             server_time = data3["serverTime"]
             long = shrt = 0.0
             long_up, shrt_up = 0.0, 0.0
