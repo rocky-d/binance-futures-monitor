@@ -56,7 +56,7 @@ class BaseMonitor:
     ) -> None:
         logger.info(f"{self} starting")
         if self.running:
-            logger.warning(f"{self} have started")
+            logger.warning(f"{self} has started")
             return
         self._task = asyncio.create_task(self._engine())
         logger.info(f"{self} started")
@@ -66,7 +66,7 @@ class BaseMonitor:
     ) -> None:
         logger.info(f"{self} stopping")
         if not self.running:
-            logger.warning(f"{self} have stopped")
+            logger.warning(f"{self} has stopped")
             return
         self._task.cancel()
         self._task = None
@@ -834,7 +834,7 @@ class MonitorGroup[BaseMonitor]:
     ) -> None:
         logger.info(f"{self} starting")
         if self.running:
-            logger.warning(f"{self} have started")
+            logger.warning(f"{self} has started")
             return
         for monitor in self._monitors:
             await monitor.start()
@@ -845,7 +845,7 @@ class MonitorGroup[BaseMonitor]:
     ) -> None:
         logger.info(f"{self} stopping")
         if not self.running:
-            logger.warning(f"{self} have stopped")
+            logger.warning(f"{self} has stopped")
             return
         for monitor in reversed(self._monitors):
             await monitor.stop()
