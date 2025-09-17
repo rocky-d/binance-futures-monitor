@@ -1,0 +1,14 @@
+*log*
+*out*
+*tmp*
+*temp*
+
+.idea/
+.vscode/
+.venv/
+.ruff_cache/
+__pycache__/
+
+/archive/
+/data/
+/logs/
