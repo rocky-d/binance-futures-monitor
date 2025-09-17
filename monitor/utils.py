@@ -72,26 +72,25 @@ def parse_interval(
 def format_milliseconds(
     milliseconds: int,
 ) -> str:
-    if milliseconds < 0:
-        raise ValueError("milliseconds cannot be negative")
     if 0 == milliseconds:
         return "0ms"
+    sign = "-" if milliseconds < 0 else "+"
     s = ""
-    seconds, milliseconds = divmod(milliseconds, 1000)
+    seconds, milliseconds = divmod(abs(milliseconds), 1000)
     if 0 < milliseconds:
-        s = f"{milliseconds}ms {s}"
+        s = f"{milliseconds}ms{s}"
     minutes, seconds = divmod(seconds, 60)
     if 0 < seconds:
-        s = f"{seconds}s {s}"
+        s = f"{seconds}s{s}"
     hours, minutes = divmod(minutes, 60)
     if 0 < minutes:
-        s = f"{minutes}m {s}"
+        s = f"{minutes}m{s}"
     days, hours = divmod(hours, 24)
     if 0 < hours:
-        s = f"{hours}h {s}"
+        s = f"{hours}h{s}"
     if 0 < days:
-        s = f"{days}d {s}"
-    return s[:-1]
+        s = f"{days}d{s}"
+    return sign + s
 
 
 def until_next(
