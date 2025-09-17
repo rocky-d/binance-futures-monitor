@@ -38,12 +38,7 @@ retention = 128
 
 [[monitors]]
 cls = "PositionMonitor"
-minute = 0
-drawdown_percent_threshold = 5.0
-
-[[monitors]]
-cls = "PositionMonitor"
-minute = 30
+minute = 2
 drawdown_percent_threshold = 5.0
 
 [[monitors]]
@@ -57,4 +52,4 @@ cls = "OrderMonitor"
 
 [[monitors]]
 cls = "ExchangeMonitor"
-minute = 5
+minute = 4
