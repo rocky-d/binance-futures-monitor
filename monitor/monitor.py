@@ -695,7 +695,7 @@ class OrderMonitor(BaseMonitor):
                     continue
                 task1 = asyncio.create_task(self._bot.send_interactive(order_card))
                 task2 = asyncio.create_task(csv_appendrows(orders_csv, csv_rows))
-                await task1
+                await (await task1).wait()
                 await task2
 
 
