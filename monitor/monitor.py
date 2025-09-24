@@ -2,6 +2,7 @@ import asyncio
 import collections
 import json
 import math
+import pandas as pd
 import pathlib
 from types import TracebackType
 from typing import Iterable, Self, Type
@@ -280,7 +281,8 @@ class MarketMonitor(BaseMonitor):
         self._speed = speed
         self._tws = tws = []
         for interval, change_percent in sorted(
-            (parse_interval(interval), change_percent) for interval, change_percent in params.items()
+            (int(pd.Timedelta(interval).total_seconds()) * 1000, change_percent)
+            for interval, change_percent in params.items()
         ):
             unit = interval // maxm
             tw = SparseTimewindow(interval, unit=unit)

@@ -9,4 +9,5 @@ dependencies = [
     "aiohttp==3.12.14",
     "binance-futures-connector==4.1.0",
     "loguru==0.7.3",
+    "pandas>=2.3.2",
 ]
