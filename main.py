@@ -1,28 +1,32 @@
-import asyncio
+import asyncio as aio
 import copy
-import datetime
+import datetime as dt
 import os
 import tomllib
 from loguru import logger
+from typing import Any
 
-from monitor import *
+from monitor import (
+    Bot,
+    PositionMonitor,
+    MarketMonitor,
+    OrderMonitor,
+    ExchangeMonitor,
+    MonitorGroup,
+)
 
 
-async def main() -> None:
-    config = {}
-    with (
-        open(r"./config.toml", mode="rb") as f0,
-        open(r"./config-private.toml", mode="rb") as f1,
-    ):
-        config.update(tomllib.load(f0))
-        config.update(tomllib.load(f1))
-
-    asyncio.get_event_loop().slow_callback_duration = config["asyncio"]["slow_callback_duration"]
+async def launch(
+    config: dict[str, Any],
+) -> None:
+    aio.get_event_loop().slow_callback_duration = config["asyncio"][
+        "slow_callback_duration"
+    ]
 
     if config["loguru"]["logger"]["remove"]:
         logger.remove()
     for kwargs in config["loguru"]["logger"]["add"]:
-        dir_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        dir_name = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
         kwargs["sink"] = os.path.join(f"./logs/{dir_name}/", kwargs["sink"])
         logger.add(**kwargs)
 
@@ -51,11 +55,23 @@ async def main() -> None:
     logger.critical(">>> ENTER >>>")
     async with position_bot, market_bot, order_bot, exchange_bot, monitor_group:
         try:
-            await asyncio.Future()
-        except asyncio.CancelledError as e:
-            pass
+            await aio.Future()
+        except aio.CancelledError as e:
+            print(repr(e))
     logger.critical("<<< EXIT <<<")
 
 
+def main() -> None:
+    config = {}
+    with (
+        open(r"./config.toml", mode="rb") as f0,
+        open(r"./config-private.toml", mode="rb") as f1,
+    ):
+        config.update(tomllib.load(f0))
+        config.update(tomllib.load(f1))
+
+    aio.run(launch(config), debug=config["asyncio"]["debug"])
+
+
 if __name__ == "__main__":
-    asyncio.run(main(), debug=True)
+    main()

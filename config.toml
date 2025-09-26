@@ -1,38 +1,55 @@
 [asyncio]
+debug = false
 slow_callback_duration = 10.0
 
 [loguru.logger]
 remove = true
 
 [[loguru.logger.add]]
-sink = "DEBUG__{time}.log"
+sink = "DEBUG.log"
 level = "DEBUG"
 format = "# {level.name}[{level.no}] | {time:YYYY-MM-DD HH:mm:ss.SSS Z} | {process.name}[{process.id}]:{thread.name}[{thread.id}] | File \"{file.path}\", line {line}, in {function}\n{message}\n"
-enqueue = true
+enqueue = false
 rotation = "8 MB"
 retention = 2
 
 [[loguru.logger.add]]
-sink = "INFO__{time}.log"
+sink = "INFO.log"
 level = "INFO"
 format = "# {level.name}[{level.no}] | {time:YYYY-MM-DD HH:mm:ss.SSS Z} | {process.name}[{process.id}]:{thread.name}[{thread.id}] | File \"{file.path}\", line {line}, in {function}\n{message}\n"
-enqueue = true
+enqueue = false
 rotation = "8 MB"
 retention = 128
 
 [[loguru.logger.add]]
-sink = "SUCCESS__{time}.log"
+sink = "SUCCESS.log"
 level = "SUCCESS"
 format = "# {level.name}[{level.no}] | {time:YYYY-MM-DD HH:mm:ss.SSS Z} | {process.name}[{process.id}]:{thread.name}[{thread.id}] | File \"{file.path}\", line {line}, in {function}\n{message}\n"
-enqueue = true
+enqueue = false
 rotation = "8 MB"
 retention = 128
 
 [[loguru.logger.add]]
-sink = "WARNING__{time}.log"
+sink = "WARNING.log"
 level = "WARNING"
 format = "# {level.name}[{level.no}] | {time:YYYY-MM-DD HH:mm:ss.SSS Z} | {process.name}[{process.id}]:{thread.name}[{thread.id}] | File \"{file.path}\", line {line}, in {function}\n{message}\n"
-enqueue = true
+enqueue = false
+rotation = "8 MB"
+retention = 128
+
+[[loguru.logger.add]]
+sink = "ERROR.log"
+level = "ERROR"
+format = "# {level.name}[{level.no}] | {time:YYYY-MM-DD HH:mm:ss.SSS Z} | {process.name}[{process.id}]:{thread.name}[{thread.id}] | File \"{file.path}\", line {line}, in {function}\n{message}\n"
+enqueue = false
+rotation = "8 MB"
+retention = 128
+
+[[loguru.logger.add]]
+sink = "CRITICAL.log"
+level = "CRITICAL"
+format = "# {level.name}[{level.no}] | {time:YYYY-MM-DD HH:mm:ss.SSS Z} | {process.name}[{process.id}]:{thread.name}[{thread.id}] | File \"{file.path}\", line {line}, in {function}\n{message}\n"
+enqueue = false
 rotation = "8 MB"
 retention = 128
 
