@@ -9,5 +9,6 @@ __pycache__/
 
 /data/
 /logs/
+/config.toml
 /config-private.toml
 /var.json
